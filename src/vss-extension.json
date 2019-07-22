@@ -1,0 +1,36 @@
+{
+    "manifestVersion": 1,
+    "id": "psmodbuild",
+    "name": "PowerShell Azure DevOps Extension",
+    "version": "0.1.0",
+    "publisher": "Microsoft Corporation",
+    "targets": [
+        {
+            "id": "Microsoft.VisualStudio.Services"
+        }
+    ],    
+    "description": "Tools for building/releasing with Fabrikam. Includes one build/release task.",
+    "categories": [
+        "Azure Pipelines"
+    ],
+    "icons": {
+        "default": "images/extension-icon.png"        
+    },
+    "files": [
+        {
+            "path": "tasks/PowerShellModuleBuild"
+        }
+    ],
+    "contributions": [
+        {
+            "id": "custom-build-release-task",
+            "type": "ms.vss-distributed-task.task",
+            "targets": [
+                "ms.vss-distributed-task.tasks"
+            ],
+            "properties": {
+                "name": "tasks/PowerShellModuleBuild"
+            }
+        }
+    ]
+}

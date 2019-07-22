@@ -1,0 +1,27 @@
+{
+  "name": "psazdevopsext",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TravisEz13/PsAzDevOpsExt.git"
+  },
+  "author": "Microsoft Corporation",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TravisEz13/PsAzDevOpsExt/issues"
+  },
+  "homepage": "https://github.com/TravisEz13/PsAzDevOpsExt#readme",
+  "dependencies": {
+    "azure-pipelines-task-lib": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.7",
+    "@types/node": "^12.6.8",
+    "@types/q": "^1.5.2"
+  }
+}

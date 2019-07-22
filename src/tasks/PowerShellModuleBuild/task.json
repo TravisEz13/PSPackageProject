@@ -1,0 +1,30 @@
+{
+    "id": "24fd644d-1df8-4cab-bb58-c14880d2a3ec",
+    "name": "ps-module-build",
+    "friendlyName": "PowerShell Module Build",
+    "description": "Helps you build PowerShell modules",
+    "helpMarkDown": "",
+    "category": "Utility",
+    "author": "Microsoft Corporation",
+    "version": {
+        "Major": 0,
+        "Minor": 1,
+        "Patch": 0
+    },
+    "instanceNameFormat": "Echo $(samplestring)",
+    "inputs": [
+        {
+            "name": "samplestring",
+            "type": "string",
+            "label": "Sample String",
+            "defaultValue": "",
+            "required": true,
+            "helpMarkDown": "A sample string"
+        }
+    ],
+    "execution": {
+        "Node": {
+            "target": "index.js"
+        }
+    }
+}
