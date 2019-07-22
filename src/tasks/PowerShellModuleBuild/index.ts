@@ -9,7 +9,7 @@ async function run() {
             return;
         }
 
-        console.log(`Input: ${inputString}`);
+        console.log(`Hello ${inputString}`);
     }
     catch (err) {
         task.setResult(task.TaskResult.Failed, err.message);
