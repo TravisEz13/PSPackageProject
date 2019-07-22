@@ -1,7 +1,7 @@
 {
     "id": "24fd644d-1df8-4cab-bb58-c14880d2a3ec",
-    "name": "psazdevopsext",
-    "friendlyName": "PowerShell Azure DevOps Extension",
+    "name": "ps-module-build",
+    "friendlyName": "PowerShell Module Build",
     "description": "Helps you build PowerShell modules",
     "helpMarkDown": "",
     "category": "Utility",
