@@ -5,6 +5,9 @@ param(
     [switch]
     $Clean,
 
+    [switch]
+    $Build,
+
     [Parameter()]
     [string]
     $OutDirectory = "$PSScriptRoot/out"
