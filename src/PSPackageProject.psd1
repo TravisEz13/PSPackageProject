@@ -52,7 +52,7 @@ Copyright = '© Microsoft Corporation. All rights reserved'
 
 # Modules that must be imported into the global environment prior to importing this module
 RequiredModules = @(
-    @{ ModuleName = 'platyPS'; ModuleVersion = '0.14.0' }, 
+    @{ ModuleName = 'platyPS'; ModuleVersion = '0.14.0' },
     @{ ModuleName = 'Pester'; ModuleVersion = '4.8.1' },
     @{ ModuleName = 'PSScriptAnalyzer'; ModuleVersion = '1.18.1' }
 )
@@ -74,7 +74,7 @@ RequiredModules = @(
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = @(
-    'New-PSPackageProjectHelp'
+    'New-PSPackageProjectHelp', 'Invoke-PSPackageProjectTest'
 )
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
