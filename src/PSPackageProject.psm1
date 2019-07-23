@@ -171,7 +171,7 @@ function Add-PSPackageProjectCmdletHelp
 
         [Parameter()]
         [cultureinfo]
-        $Culture,
+        $Culture
     )
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
