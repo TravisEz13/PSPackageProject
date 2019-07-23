@@ -96,6 +96,22 @@ function Invoke-PSPackageProjectTest
     ## TODO implement calling tests
 }
 
+<#
+.SYNOPSIS
+Generates help file stubs.
+
+.DESCRIPTION
+Generates stubs for about_*.md help documentation for a given module.
+
+.PARAMETER ProjectRoot
+The repository root directory path.
+
+.PARAMETER ModuleName
+The name of the module to generate help for.
+
+.PARAMETER Culture
+The culture or locale the help is to be generated in/for.
+#>
 function New-PSPackageProjectHelpStub
 {
     [CmdletBinding()]
@@ -122,6 +138,25 @@ function New-PSPackageProjectHelpStub
     New-MarkdownAboutHelp -OutputFolder $helpResourcePath -AboutName $ModuleName
 }
 
+<#
+.SYNOPSIS
+Create or update cmdlet help stubs markdown files.
+
+.DESCRIPTION
+Creates or updates the cmdlet help resource files
+for the given module.
+The generated help will be stubs, requiring regions with {{ }}
+to be filled in.
+
+.PARAMETER ProjectRoot
+The path to the repository root of the module.
+
+.PARAMETER ModuleName
+The name of the module to generate cmdlet help for.
+
+.PARAMETER Culture
+The culture in which cmdlet help should be created.
+#>
 function Add-PSPackageProjectCmdletHelp
 {
     [CmdletBinding()]
@@ -137,9 +172,6 @@ function Add-PSPackageProjectCmdletHelp
         [Parameter()]
         [cultureinfo]
         $Culture,
-
-        [switch]
-        $Force
     )
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
@@ -160,6 +192,24 @@ function Add-PSPackageProjectCmdletHelp
     RunPwshCommandInSubprocess -Command "Import-Module '$outModulePath'; Update-MarkdownHelp -Path '$helpResourcePath'"
 }
 
+<#
+.SYNOPSIS
+Assembles help files into staging output.
+
+.DESCRIPTION
+Compiles markdown help resources into
+PowerShell external help files and places
+them into the staging location.
+
+.PARAMETER ProjectRoot
+The path to the project repository root.
+
+.PARAMETER ModuleName
+The name of the module to publish help for.
+
+.PARAMETER Culture
+The locale or culture the help is written for.
+#>
 function Publish-PSPackageProjectHelp
 {
     [CmdletBinding()]
