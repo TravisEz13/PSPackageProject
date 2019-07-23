@@ -184,7 +184,7 @@ function Add-PSPackageProjectCmdletHelp
 
     if (-not (HasCmdletHelp -HelpResourcePath $helpResourcePath))
     {
-        New-Item -Path $helpResourcePath -ItemType Directory
+        New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Ignore
         RunPwshCommandInSubprocess -Command "Import-Module '$outModulePath'; New-MarkdownHelp -Module $ModuleName -OutputFolder '$helpResourcePath'"
         return
     }
@@ -210,7 +210,7 @@ The name of the module to publish help for.
 .PARAMETER Culture
 The locale or culture the help is written for.
 #>
-function Publish-PSPackageProjectHelp
+function Export-PSPackageProjectHelp
 {
     [CmdletBinding()]
     param(
