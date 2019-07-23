@@ -1,0 +1,54 @@
+name: Build-$(System.PullRequest.PullRequestNumber)-$(Date:yyyyMMdd)$(Rev:.rr)
+trigger:
+  # Batch merge builds together while a merge build is running
+  batch: true
+  branches:
+    include:
+    - master
+pr:
+  branches:
+    include:
+    - master
+
+stages:
+- stage: Build
+  displayName: Build PowerShell Package
+  jobs:
+  - job: BuildPkg
+    displayName: Build Package
+    steps:
+    - pwsh: |
+        Install-Module -Name PSPackageProject -Force
+      displayName: Install PSPackageProject module
+    - pwsh: |
+        Import-Module PSPackageProject -Force
+        $(Build.SourcesDirectory)/build.ps1 -Build
+      displayName: Build and publish artifact
+
+- stage: Test
+  displayName: Test Package
+  jobs:
+  - template: templates/test.yml
+    parameters:
+      jobName: TestPkgWin
+      displayName: PowerShell Core on Windows
+      imageName: windows-2019
+
+  - template: templates/test.yml
+    parameters:
+      jobName: TestPkgWinPS
+      displayName: Windows PowerShell on Windows
+      imageName: windows-2019
+      powershellExecutable: powershell
+
+  - template: templates/test.yml
+    parameters:
+      jobName: TestPkgUbuntu16
+      displayName: PowerShell Core on Ubuntu 16.04
+      imageName: ubuntu-16.04
+
+  - template: templates/test.yml
+    parameters:
+      jobName: TestPkgWinMacOS
+      displayName: PowerShell Core on macOS
+      imageName: macOS-10.14
