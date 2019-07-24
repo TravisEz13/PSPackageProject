@@ -11,7 +11,6 @@ function Join-Path2 {
         [Parameter(Mandatory)]
         [string] $ChildPath,
 
-        [Parameter(Mandatory)]
         [string[]] $AdditionalChildPath
     )
 
@@ -21,7 +20,7 @@ function Join-Path2 {
     $null = $paths.Add($ChildPath)
     $AdditionalChildPath | ForEach-Object { $null = $paths.Add($_) }
 
-    [System.IO.Path]::Join($paths)
+    [System.IO.Path]::Combine($paths)
 }
 
 function RunPwshCommandInSubprocess {
@@ -134,8 +133,10 @@ function Invoke-StaticValidation {
     param ( $stagingDirectory, $StaticValidators = @("BinSkim", "ScriptAnalyzer" ) )
     $fault = $false
     foreach ( $validator in $StaticValidators ) {
-        $resultFile = & "Invoke-${validator}" -Location $stagingDirectory
-        if ( Show-Failures -testResult $resultFile ) {
+        Write-Verbose "Running Invoke-${validator}" -Verbose
+
+        $resultFile = & "Invoke-${validator}" #-Location $stagingDirectory
+        if ( Show-Failure -testResult $resultFile ) {
             $fault = $true
         }
     }
@@ -174,21 +175,123 @@ function Invoke-PSPackageProjectTest {
     param(
         [Parameter()]
         [ValidateSet("Functional", "StaticAnalysis")]
-        [string]
+        [string[]]
         $Type
     )
 
     END {
-        if ( $type -contains "Functional" ) {
+        if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation -testPath $testPath
             $testResults = Test-Result -path $resultFile
             ##$null = Show-Failures $testResults
         }
 
-        if ( $type -contains "Static" ) {
+        if ($Type -contains "StaticAnalysis" ) {
             Invoke-StaticValidation
         }
+    }
+}
+
+function Invoke-BinSkim
+{
+    [CmdletBinding(DefaultParameterSetName='default')]
+    param(
+        [Parameter(ParameterSetName='byPath',Mandatory)]
+        [string]
+        $Location,
+        [Parameter(ParameterSetName='byPath')]
+        [string]
+        $Filter = '*'
+    )
+
+    $sourceName = 'Nuget'
+    Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
+    $packageName = 'microsoft.codeanalysis.binskim'
+    $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
+    Write-Verbose "Finding binskim..." -Verbose
+    $packageInfo = Find-Package -Name $packageName -Source $sourceName
+    if($IsLinux)
+    {
+        $binaryName ='BinSkim'
+        $rid = 'linux-x64'
+    }
+    elseif($IsWindows -ne $false)
+    {
+        $binaryName ='BinSkim.exe'
+        if([Environment]::Is64BitOperatingSystem)
+        {
+            $rid = 'win-x64'
+        }
+        else
+        {
+            $rid = 'win-x86'
+        }
+    }
+    else {
+        Write-Warning "unsupported platform"
+        return
+    }
+
+    $dirName = $packageInfo.Name + '.' + $packageInfo.Version
+    $toolLocation = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
+    if(!(test-path -path $toolLocation))
+    {
+        Write-Verbose "Installing binskim..." -Verbose
+        $packageInfo | Install-Package -Destination $packageLocation -Force
+    }
+
+    if($IsLinux)
+    {
+        chmod a+x $toolLocation
+    }
+
+    if($Location)
+    {
+        $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
+        $toAnalyze = Join-Path2 -Path $resolvedPath -ChildPath $Filter
+    }
+    else
+    {
+        $toAnalyze = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, '*'
+    }
+
+    $outputPath =  Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+    Write-Verbose "Running binskim..." -Verbose
+    & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
+
+    $testsPath = Join-Path2 -Path $PSScriptRoot -ChildPath 'tasks' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+
+    Write-Verbose "Generating test results..." -Verbose
+    Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
+    $PowerShellName  = switch($PSVersionTable.PSEdition) {
+            'Core' { 'PowerShell Core'}
+            'Desktop' { 'Windows PowerShell' }
+        }
+
+    Publish-AzDevOpsArtifact -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    return ./binskim-results.xml
+}
+
+function Publish-AzDevOpsArtifact
+{
+    param(
+        [parameter(Mandatory)]
+        [string]
+        $Path,
+        [parameter(Mandatory)]
+        [string]
+        $Title,
+        [string]
+        $Type = 'NUnit'
+    )
+
+    $artifactPath = (Resolve-Path $Path).ProviderPath
+
+    # Just do nothing if we are not in AzDevOps
+    if($env:TF_BUILD)
+    {
+        Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
     }
 }
 
