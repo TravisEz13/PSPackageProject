@@ -32,7 +32,7 @@ function DoBuild
 }
 
 #region Special casing for PSPackageProject CI system
-$PSPackageProjectModule = [System.IO.Path]::Join($PSScriptRoot, $SrcPath, "$ModuleName.psd1")
+$PSPackageProjectModule = [System.IO.Path]::Combine($PSScriptRoot, $SrcPath, "$ModuleName.psd1")
 Import-Module $PSPackageProjectModule -Force
 #endregion
 
