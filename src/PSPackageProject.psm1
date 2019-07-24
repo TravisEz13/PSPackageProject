@@ -209,7 +209,7 @@ function Invoke-BinSkim
     $sourceName = 'Nuget'
     Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
     $packageName = 'microsoft.codeanalysis.binskim'
-    $packageLocation = Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
+    $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
     Write-Verbose "Finding binskim..." -Verbose
     $packageInfo = Find-Package -Name $packageName -Source $sourceName
     if($IsLinux)
@@ -235,7 +235,7 @@ function Invoke-BinSkim
     }
 
     $dirName = $packageInfo.Name + '.' + $packageInfo.Version
-    $toolLocation = Join-Path -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
+    $toolLocation = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
     if(!(test-path -path $toolLocation))
     {
         Write-Verbose "Installing binskim..." -Verbose
@@ -250,18 +250,18 @@ function Invoke-BinSkim
     if($Location)
     {
         $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
-        $toAnalyze = Join-Path -Path $resolvedPath -ChildPath $Filter
+        $toAnalyze = Join-Path2 -Path $resolvedPath -ChildPath $Filter
     }
     else
     {
-        $toAnalyze = Join-Path -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, '*'
+        $toAnalyze = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, '*'
     }
 
-    $outputPath =  Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+    $outputPath =  Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
     Write-Verbose "Running binskim..." -Verbose
     & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
 
-    $testsPath = Join-Path -Path $PSScriptRoot -ChildPath 'tasks' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+    $testsPath = Join-Path2 -Path $PSScriptRoot -ChildPath 'tasks' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
     Write-Verbose "Generating test results..." -Verbose
     Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
