@@ -3,6 +3,21 @@
 
 #region Private implementation functions
 
+function GetPowerShellName
+{
+    switch($PSVersionTable.PSEdition) {
+        'Core'
+        {
+            return 'PowerShell Core'
+        }
+
+        default
+        { 
+            return 'Windows PowerShell'
+        }
+    }
+}
+
 function Join-Path2 {
     param(
         [Parameter(Mandatory)]
@@ -146,15 +161,22 @@ function Invoke-StaticValidation {
     }
 }
 
-function Invoke-ScriptAnalyzer {
+function RunScriptAnalysis {
     try {
         Push-Location
-        $results = Invoke-ScriptAnalyzer . | Where-Object { $_.Severity -match "Error" }
+        $results = PSScriptAnalyzer\Invoke-ScriptAnalyzer . | Where-Object { $_.Severity -match "Error" }
         if ( $results ) {
             foreach ($result in $results ) {
                 $formattedResult = $result | Out-String
                 Write-Error $formattedResult
             }
+            
+            if ($env:TF_BUILD) {
+                $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
+                $powershellName = GetPowerShellName
+                Publish-AzDevOpsArtifact -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
+            }
+
             throw "Script Analyzer failure"
         }
     }
@@ -163,9 +185,32 @@ function Invoke-ScriptAnalyzer {
     }
 }
 
-function Test-Result
-{
+function Test-Result {
+}
 
+function ConvertPssaDiagnosticsToNUnit {
+    param(
+        [Parameter(ValueFromPipeline)]
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord[]]
+        $Diagnostic
+    )
+
+    $sb = [System.Text.StringBuilder]::new()
+    $null = $sb.Append('Describe "PSScriptAnalyzer Diagnostics" {')
+    foreach ($d in $Diagnostic) {
+        $description = $d.RuleName + ': ' + $d.Message
+        $null = $sb.Append("It '$description' { throw 'FAIL' }")
+    }
+    $null = $sb.Append('}')
+
+    $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.tests.ps1"
+    $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.xml"
+
+    Set-Content -Path $testPath -Value $sb.ToString()
+
+    Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+
+    return $xmlPath
 }
 
 <#
@@ -306,10 +351,7 @@ function Invoke-BinSkim
 
     Write-Verbose "Generating test results..." -Verbose
     Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
-    $PowerShellName  = switch($PSVersionTable.PSEdition) {
-            'Core' { 'PowerShell Core'}
-            'Desktop' { 'Windows PowerShell' }
-        }
+    $PowerShellName = GetPowerShellName
 
     Publish-AzDevOpsTestResult -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
     return ./binskim-results.xml
