@@ -523,7 +523,25 @@ namespace ${ModuleName}
     }
 
     # make test folder and create a test template
-    $null = New-Item -ItemType Directory -Path "${moduleRoot}/Test"
+    $testDir = Join-Path $moduleRoot Test
+    $testTemplate = Join-Path $testDir "${moduleName}.Tests.ps1"
+    $null = New-Item -ItemType Directory -Path "${testDir}"
+    @"
+Describe "Test ${moduleName}" {
+    BeforeAll {
+    }
+    BeforeEach {
+    }
+    AfterEach {
+    }
+    AfterAll {
+    }
+    It "This is the first test for ${moduleName}" {
+        `$name = "Hello World"
+        verb-noun -name `$name | Should -BeExactly `$name
+    }
+}
+"@ | Out-File "${testTemplate}"
 
     # make CI ymls
     Initialize-CIYml -Path ${moduleRoot}
