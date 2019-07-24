@@ -213,7 +213,10 @@ function ConvertPssaDiagnosticsToNUnit {
     $sb = [System.Text.StringBuilder]::new()
     $null = $sb.Append('Describe "PSScriptAnalyzer Diagnostics" {')
     foreach ($d in $Diagnostic) {
-        $description = '[' + $d.Severity.ToString() + '] ' + $d.RuleName + ': ' + $d.Message
+        $severity = $d.Severity
+        $ruleName = $d.RuleName
+        $message = $d.Message
+        $description = "[$severity] ${ruleName}: $message"
         $null = $sb.Append("It '$description' { throw 'FAIL' }")
     }
     $null = $sb.Append('}')
