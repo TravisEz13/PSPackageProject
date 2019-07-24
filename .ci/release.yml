@@ -1,0 +1,24 @@
+parameters:
+  jobName: release
+  imageName: windows-2019
+  displayName: Release
+
+jobs:
+- job: ${{ parameters.jobName }}
+  pool:
+    vmImage: ${{ parameters.imageName }}
+  displayName: ${{ parameters.displayName }}
+  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'), eq(variables['Publish'], 'Yes'))
+  steps:
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download artifacts'
+    inputs:
+      buildType: current
+      downloadType: single
+      artifactName: NuPkg
+      downloadPath: '$(System.ArtifactsDirectory)'
+  - task: NuGetToolInstaller@1
+    displayName: 'Install NuGet'
+  - pwsh: |
+        nuget push $(System.ArtifactsDirectory)\*.nupkg -ApiKey $(NuGetApiKey) -Source https://www.powershellgallery.com/api/v2 -NonInteractive
+    displayName: Install dependencies
