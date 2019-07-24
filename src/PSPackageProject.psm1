@@ -183,7 +183,7 @@ function Invoke-PSPackageProjectTest {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation -testPath $testPath
             $testResults = Test-Result -path $resultFile
-            $null = Show-Failures $testResults
+            ##$null = Show-Failures $testResults
         }
 
         if ( $type -contains "Static" ) {
