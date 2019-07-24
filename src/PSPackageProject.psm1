@@ -20,7 +20,7 @@ function Join-Path2 {
     $null = $paths.Add($ChildPath)
     $AdditionalChildPath | ForEach-Object { $null = $paths.Add($_) }
 
-    [System.IO.Path]::Join($paths)
+    [System.IO.Path]::Combine(($paths)
 }
 
 function RunPwshCommandInSubprocess {
