@@ -130,7 +130,7 @@ function New-PSPackageProjectHelpStub
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
 
-    $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture 
+    $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture
 
     New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
 
@@ -235,4 +235,20 @@ function Export-PSPackageProjectHelp
     New-ExternalHelp -Path $helpResourcePath -OutputPath "$outModulePath/$cultureName" -Force
 }
 
+function Invoke-PSPackageProjectBuild
+{
+    param(
+        [Parameter()]
+        [ScriptBlock]
+        $BuildScript
+    )
+
+    Write-Verbose -Verbose "Invoking build script"
+
+    $BuildScript.Invoke()
+
+    Write-Verbose -Verbose "Finished invoking build script"
+}
+
 #endregion Public commands
+

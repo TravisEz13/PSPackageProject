@@ -12,7 +12,7 @@ param(
 $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
 
 $script:ModuleName = $config.ModuleName
-$script:SrcPath = $config.SourcePath
+$script:SrcPath = $config.SourceRootPath
 $script:OutDirectory = $config.BuildOutputPath
 
 $script:ModuleRoot = Join-Path $PSScriptRoot $SrcPath
@@ -24,14 +24,11 @@ Implement build and packaging of the package and place the output $OutDirectory/
 function DoBuild
 {
     Write-Verbose -Verbose "Starting DoBuild"
-    Get-ChildItem -Path $script:ModuleRoot -Filter "$script:ModuleName.ps*1" | ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
+    ## Add build and packaging here
     Write-Verbose -Verbose "Ending DoBuild"
 }
 
-#region Special casing for PSPackageProject CI system
-$PSPackageProjectModule = Join-Path $PSScriptRoot $SrcPath -AdditionalChildPath "$ModuleName.psd1"
-Import-Module $PSPackageProjectModule -Force
-#endregion
+Install-Module PSPackageProject
 
 if ($Clean -and (Test-Path $OutDirectory))
 {
