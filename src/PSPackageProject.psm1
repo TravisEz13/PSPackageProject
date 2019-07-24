@@ -462,7 +462,7 @@ function Initialize-PSPackageProject {
 
     $ModuleRoot = (Resolve-Path $ModuleBase -ea SilentlyContinue ).Path
     if ( $ModuleRoot -and ! $force ) {
-        throw "'${ModuleRule}' already exists, use -Force to overwrite"
+        throw "'${ModuleRoot}' already exists, use -Force to overwrite"
     }
 
     if ( ! $ModuleRoot ) {
@@ -496,7 +496,6 @@ function Initialize-PSPackageProject {
     $null = New-Item -ItemType Directory -Path $moduleCodeBase
     try {
         Push-Location $moduleCodeBase
-        Wait-Debugger
         $output = dotnet new classlib -f netstandard2.0 --no-restore --force
         $output += dotnet add package PowerShellStandard.Library --no-restore
         Move-Item code.csproj "${ModuleName}.csproj"
@@ -547,6 +546,15 @@ Describe "Test ${moduleName}" {
 
     # make CI ymls
     Initialize-CIYml -Path ${moduleRoot}
+
+    # make pspackageproject.json
+    @{
+        SourcePath = 'src'
+        ModuleName = "${ModuleName}"
+        TestPath = 'Test'
+        HelpPath = 'Help'
+        BuildOutputPath = 'out'
+    } | ConvertTo-Json | Out-File (Join-Path ${moduleRoot} "pspackageproject.json")
 }
 
 #endregion Public commands
