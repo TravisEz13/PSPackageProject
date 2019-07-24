@@ -192,6 +192,107 @@ function Invoke-PSPackageProjectTest {
     }
 }
 
+function Invoke-BinSkim
+{
+    [CmdletBinding(DefaultParameterSetName='default')]
+    param(
+        [Parameter(ParameterSetName='byPath',Mandatory)]
+        [string]
+        $Location,
+        [Parameter(ParameterSetName='byPath')]
+        [string]
+        $Filter = '*'
+    )
+
+    $sourceName = 'Nuget'
+    Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
+    $packageName = 'microsoft.codeanalysis.binskim'
+    $packageLocation = Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
+    Write-Verbose "Finding binskim..." -Verbose
+    $packageInfo = Find-Package -Name $packageName -Source $sourceName
+    if($IsLinux)
+    {
+        $binaryName ='BinSkim'
+        $rid = 'linux-x64'
+    }
+    elseif($IsWindows -ne $false)
+    {
+        $binaryName ='BinSkim.exe'
+        if([Environment]::Is64BitOperatingSystem)
+        {
+            $rid = 'win-x64'
+        }
+        else
+        {
+            $rid = 'win-x86'
+        }
+    }
+    else {
+        Write-Warning "unsupported platform"
+        return
+    }
+
+    $dirName = $packageInfo.Name + '.' + $packageInfo.Version
+    $toolLocation = Join-Path -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
+    if(!(test-path -path $toolLocation))
+    {
+        Write-Verbose "Installing binskim..." -Verbose
+        $packageInfo | Install-Package -Destination $packageLocation -Force
+    }
+
+    if($IsLinux)
+    {
+        chmod a+x $toolLocation
+    }
+
+    if($Location)
+    {
+        $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
+        $toAnalyze = Join-Path -Path $resolvedPath -ChildPath $Filter
+    }
+    else
+    {
+        $toAnalyze = Join-Path -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, '*'
+    }
+
+    $outputPath =  Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+    Write-Verbose "Running binskim..." -Verbose
+    & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
+
+    $testsPath = Join-Path -Path $PSScriptRoot -ChildPath 'tasks' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+
+    Write-Verbose "Generating test results..." -Verbose
+    Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
+    $PowerShellName  = switch($PSVersionTable.PSEdition) {
+            'Core' { 'PowerShell Core'}
+            'Desktop' { 'Windows PowerShell' }
+        }
+
+    Publish-AzDevOpsArtifact -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+}
+
+function Publish-AzDevOpsArtifact
+{
+    param(
+        [parameter(Mandatory)]
+        [string]
+        $Path,
+        [parameter(Mandatory)]
+        [string]
+        $Title,
+        [string]
+        $Type = 'NUnit'
+    )
+
+    $artifactPath = (Resolve-Path $Path).ProviderPath
+
+    # Just do nothing if we are not in AzDevOps
+    if($env:TF_BUILD)
+    {
+        Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
+    }
+}
+
 <#
 .SYNOPSIS
 Generates help file stubs.

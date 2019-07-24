@@ -1,1 +1,4 @@
 /out/
+.DS_Store
+binskim.log
+binskim-results.xml
