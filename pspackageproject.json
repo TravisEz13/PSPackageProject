@@ -1,0 +1,7 @@
+{
+    "SourcePath": "src",
+    "ModuleName": "PSPackageProject",
+    "TestPath": "test",
+    "HelpPath": "help",
+    "BuildOutputPath": "out"
+}
