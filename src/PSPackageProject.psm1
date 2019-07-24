@@ -479,15 +479,15 @@ function Initialize-PSPackageProject {
     Initialize-PSPackageProjectHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName
 
     # Create the scaffold for .psd1 and .psm1
-    $moduleSourceBase = [System.IO.Path]::Join($ModuleRoot, "src")
+    $moduleSourceBase = Join-Path $ModuleRoot "src"
     $null = New-Item -ItemType Directory -Path $moduleSourceBase
-    $moduleFileWithoutExtension = [system.io.path]::join($moduleSourceBase, ${ModuleName})
+    $moduleFileWithoutExtension = Join-Path $moduleSourceBase ${ModuleName}
     New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1"
     $null = New-Item -Type File "${moduleFileWithoutExtension}.psm1"
 
     # Create a directory for cs sources and create a classlib csproj file with
     # System.Management.Automation as a package reference
-    $moduleCodeBase = [System.IO.Path]::Join($moduleSourceBase, "code")
+    $moduleCodeBase = Join-Path $moduleSourceBase "code"
     $null = New-Item -ItemType Directory -Path $moduleCodeBase
     try {
         Push-Location $moduleCodeBase
@@ -547,13 +547,22 @@ Describe "Test ${moduleName}" {
     Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
 
     # make pspackageproject.json
+    $jsonPrj =
     @{
         SourcePath = 'src'
         ModuleName = "${ModuleName}"
         TestPath = 'test'
         HelpPath = 'help'
         BuildOutputPath = 'out'
-    } | ConvertTo-Json | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8BOM
+    } | ConvertTo-Json
+
+    if($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
+        Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
+    }
+    else {
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
+    }
 }
 
 #endregion Public commands
