@@ -162,9 +162,24 @@ function Invoke-StaticValidation {
 }
 
 function RunScriptAnalysis {
+    param(
+        [Parameter()]
+        [string]
+        $ProjectRoot,
+
+        [Parameter()]
+        [string]
+        $ModuleName
+    )
+
     try {
         Push-Location
-        $results = PSScriptAnalyzer\Invoke-ScriptAnalyzer . | Where-Object { $_.Severity -match "Error" }
+        $pssaParams = @{
+            Severity = 'Warning','ParseError'
+            Path = GetOutputModulePath -ProjectRoot $ProjectRoot -ModuleName $ModuleName
+            Recurse = $true
+        }
+        $results = Invoke-ScriptAnalyzer @pssaParams
         if ( $results ) {
             foreach ($result in $results ) {
                 $formattedResult = $result | Out-String
@@ -198,7 +213,7 @@ function ConvertPssaDiagnosticsToNUnit {
     $sb = [System.Text.StringBuilder]::new()
     $null = $sb.Append('Describe "PSScriptAnalyzer Diagnostics" {')
     foreach ($d in $Diagnostic) {
-        $description = $d.RuleName + ': ' + $d.Message
+        $description = '[' + $d.Severity.ToString() + '] ' + $d.RuleName + ': ' + $d.Message
         $null = $sb.Append("It '$description' { throw 'FAIL' }")
     }
     $null = $sb.Append('}')
@@ -206,9 +221,15 @@ function ConvertPssaDiagnosticsToNUnit {
     $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.tests.ps1"
     $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.xml"
 
-    Set-Content -Path $testPath -Value $sb.ToString()
-
-    Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+    try
+    {
+        Set-Content -Path $testPath -Value $sb.ToString()
+        Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+    }
+    finally
+    {
+        Remove-Item -Path $testPath -Force
+    }
 
     return $xmlPath
 }
