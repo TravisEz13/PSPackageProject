@@ -3,7 +3,6 @@
 
 #region Private implementation functions
 
-$script:pwshPath
 function RunPwshCommandInSubprocess
 {
     param(
