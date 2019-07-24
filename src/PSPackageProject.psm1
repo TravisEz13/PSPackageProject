@@ -311,11 +311,11 @@ function Invoke-BinSkim
             'Desktop' { 'Windows PowerShell' }
         }
 
-    Publish-AzDevOpsArtifact -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    Publish-AzDevOpsTestResult -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
     return ./binskim-results.xml
 }
 
-function Publish-AzDevOpsArtifact
+function Publish-AzDevOpsTestResult
 {
     param(
         [parameter(Mandatory)]
@@ -336,8 +336,6 @@ function Publish-AzDevOpsArtifact
         Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
     }
 }
-
-
 
 <#
 .SYNOPSIS
