@@ -11,7 +11,6 @@ function Join-Path2 {
         [Parameter(Mandatory)]
         [string] $ChildPath,
 
-        [Parameter(Mandatory)]
         [string[]] $AdditionalChildPath
     )
 
