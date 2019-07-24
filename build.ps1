@@ -26,6 +26,7 @@ function DoBuild
     Write-Verbose -Verbose "Starting DoBuild"
     Get-ChildItem -Path $script:ModuleRoot -Filter "*.ps*1" | ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
     Copy-Item -Path (Join-Path $script:ModuleRoot 'yml') -Recurse $script:OutModule -Force
+    Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule
 
     Write-Verbose -Verbose "Ending DoBuild"
 }

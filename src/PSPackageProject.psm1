@@ -204,7 +204,7 @@ function Initialize-PSPackageProjectHelp {
 
     $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture
 
-    New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
+    $null = New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
 
     New-MarkdownAboutHelp -OutputFolder $helpResourcePath -AboutName $ModuleName
 }
@@ -542,6 +542,10 @@ Describe "Test ${moduleName}" {
     # make CI ymls
     Initialize-CIYml -Path ${moduleRoot}
 
+    # make build.ps1
+    $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
+    Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
+
     # make pspackageproject.json
     @{
         SourcePath = 'src'
@@ -553,4 +557,3 @@ Describe "Test ${moduleName}" {
 }
 
 #endregion Public commands
-
