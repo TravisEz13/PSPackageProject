@@ -134,6 +134,8 @@ function Invoke-StaticValidation {
     param ( $stagingDirectory, $StaticValidators = @("BinSkim", "ScriptAnalyzer" ) )
     $fault = $false
     foreach ( $validator in $StaticValidators ) {
+        Write-Verbose "Running Invoke-${validator} -Verbose
+
         $resultFile = & "Invoke-${validator}" -Location $stagingDirectory
         if ( Show-Failures -testResult $resultFile ) {
             $fault = $true
@@ -187,6 +189,7 @@ function Invoke-PSPackageProjectTest {
         }
 
         if ( $type -contains "Static" ) {
+            Write-Verbose "Running static.." -Verbose
             Invoke-StaticValidation
         }
     }
@@ -496,7 +499,7 @@ function Initialize-PSPackageProject {
         $output = dotnet new classlib -f netstandard2.0 --no-restore --force
         $output += dotnet add package PowerShellStandard.Library
         Move-Item code.csproj "${ModuleName}.csproj"
-        @"
+@"
 using System;
 using System.Management.Automation;
 
