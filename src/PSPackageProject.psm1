@@ -168,6 +168,47 @@ function Test-Result
 
 }
 
+<#
+.SYNOPSIS
+Generates help file stubs.
+
+.DESCRIPTION
+Generates stubs for about_*.md help documentation for a given module.
+
+.PARAMETER ProjectRoot
+The repository root directory path.
+
+.PARAMETER ModuleName
+The name of the module to generate help for.
+
+.PARAMETER Culture
+The culture or locale the help is to be generated in/for.
+#>
+function Initialize-PSPackageProjectHelp {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]
+        $ProjectRoot,
+
+        [Parameter(Mandatory)]
+        [string]
+        $ModuleName,
+
+        [Parameter()]
+        [cultureinfo]
+        $Culture = [cultureinfo]::CurrentCulture
+    )
+
+    $ProjectRoot = Resolve-Path -Path $ProjectRoot
+
+    $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture
+
+    New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
+
+    New-MarkdownAboutHelp -OutputFolder $helpResourcePath -AboutName $ModuleName
+}
+
 #endregion Private implementation functions
 
 #region Public commands
@@ -296,46 +337,7 @@ function Publish-AzDevOpsArtifact
     }
 }
 
-<#
-.SYNOPSIS
-Generates help file stubs.
 
-.DESCRIPTION
-Generates stubs for about_*.md help documentation for a given module.
-
-.PARAMETER ProjectRoot
-The repository root directory path.
-
-.PARAMETER ModuleName
-The name of the module to generate help for.
-
-.PARAMETER Culture
-The culture or locale the help is to be generated in/for.
-#>
-function New-PSPackageProjectHelpStub {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [string]
-        $ProjectRoot,
-
-        [Parameter(Mandatory)]
-        [string]
-        $ModuleName,
-
-        [Parameter()]
-        [cultureinfo]
-        $Culture = [cultureinfo]::CurrentCulture
-    )
-
-    $ProjectRoot = Resolve-Path -Path $ProjectRoot
-
-    $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture
-
-    New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
-
-    New-MarkdownAboutHelp -OutputFolder $helpResourcePath -AboutName $ModuleName
-}
 
 <#
 .SYNOPSIS
@@ -476,12 +478,7 @@ function Initialize-PSPackageProject {
 
     # Create the help directory
     # and populate a couple of files
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    $ModuleInfo['Culture'] = $currentCulture
-    $helpBase = [System.IO.Path]::Join($ModuleRoot, "Help", $currentCulture)
-    $aboutMod = [System.IO.Path]::Join($helpBase, "${ModuleName}.md")
-    $null = New-Item -Type Directory $helpBase -Force
-    "# About Module $ModuleName" | Out-File -FilePath $aboutMod
+    Initialize-PSPackageProjectHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName
 
     # Create the scaffold for .psd1 and .psm1
     $moduleSourceBase = [System.IO.Path]::Join($ModuleRoot, "src")
@@ -524,7 +521,7 @@ namespace ${ModuleName}
     }
 
     # make test folder and create a test template
-    $testDir = Join-Path $moduleRoot Test
+    $testDir = Join-Path $moduleRoot 'test'
     $testTemplate = Join-Path $testDir "${moduleName}.Tests.ps1"
     $null = New-Item -ItemType Directory -Path "${testDir}"
     @"
@@ -551,8 +548,8 @@ Describe "Test ${moduleName}" {
     @{
         SourcePath = 'src'
         ModuleName = "${ModuleName}"
-        TestPath = 'Test'
-        HelpPath = 'Help'
+        TestPath = 'test'
+        HelpPath = 'help'
         BuildOutputPath = 'out'
     } | ConvertTo-Json | Out-File (Join-Path ${moduleRoot} "pspackageproject.json")
 }
