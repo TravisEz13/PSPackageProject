@@ -9,7 +9,7 @@ param(
     $Build
 )
 
-$config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
+$config = Get-PSPackageProjectConfiguration -ProjectRoot $PSScriptRoot
 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
@@ -24,7 +24,7 @@ Implement build and packaging of the package and place the output $OutDirectory/
 function DoBuild
 {
     Write-Verbose -Verbose "Starting DoBuild"
-    Get-ChildItem -Path $script:ModuleRoot -Filter "*.ps*1" | 
+    Get-ChildItem -Path $script:ModuleRoot -Filter "*.ps*1" |
         ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
     Copy-Item -Path (Join-Path $script:ModuleRoot 'yml') -Recurse $script:OutModule -Force
     Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule

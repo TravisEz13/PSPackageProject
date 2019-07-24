@@ -631,4 +631,14 @@ Describe "Test ${moduleName}" {
     }
 }
 
+function Get-PSPackageProjectConfiguration
+{
+    param(
+        [Parameter(Mandatory)]
+        [string] $ProjectRoot
+    )
+
+    Get-Content -Path (Join-Path $ProjectRoot 'pspackageproject.json') | ConvertFrom-Json
+}
+
 #endregion Public commands
