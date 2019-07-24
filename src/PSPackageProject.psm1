@@ -496,8 +496,9 @@ function Initialize-PSPackageProject {
     $null = New-Item -ItemType Directory -Path $moduleCodeBase
     try {
         Push-Location $moduleCodeBase
+        Wait-Debugger
         $output = dotnet new classlib -f netstandard2.0 --no-restore --force
-        $output += dotnet add package PowerShellStandard.Library
+        $output += dotnet add package PowerShellStandard.Library --no-restore
         Move-Item code.csproj "${ModuleName}.csproj"
         @"
 using System;
