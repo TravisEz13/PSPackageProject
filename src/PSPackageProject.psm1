@@ -134,10 +134,10 @@ function Invoke-StaticValidation {
     param ( $stagingDirectory, $StaticValidators = @("BinSkim", "ScriptAnalyzer" ) )
     $fault = $false
     foreach ( $validator in $StaticValidators ) {
-        Write-Verbose "Running Invoke-${validator} -Verbose
+        Write-Verbose "Running Invoke-${validator}" -Verbose
 
-        $resultFile = & "Invoke-${validator}" -Location $stagingDirectory
-        if ( Show-Failures -testResult $resultFile ) {
+        $resultFile = & "Invoke-${validator}" #-Location $stagingDirectory
+        if ( Show-Failure -testResult $resultFile ) {
             $fault = $true
         }
     }
@@ -176,20 +176,19 @@ function Invoke-PSPackageProjectTest {
     param(
         [Parameter()]
         [ValidateSet("Functional", "StaticAnalysis")]
-        [string]
+        [string[]]
         $Type
     )
 
     END {
-        if ( $type -contains "Functional" ) {
+        if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation -testPath $testPath
             $testResults = Test-Result -path $resultFile
             ##$null = Show-Failures $testResults
         }
 
-        if ( $type -contains "Static" ) {
-            Write-Verbose "Running static.." -Verbose
+        if ($Type -contains "StaticAnalysis" ) {
             Invoke-StaticValidation
         }
     }
@@ -272,6 +271,7 @@ function Invoke-BinSkim
         }
 
     Publish-AzDevOpsArtifact -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    return ./binskim-results.xml
 }
 
 function Publish-AzDevOpsArtifact
