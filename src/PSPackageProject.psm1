@@ -98,11 +98,12 @@ function Initialize-CIYml {
         [string] $Path
     )
 
-    $boilerplateCIYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'ci.yml'
-    Copy-Item $boilerplateCIYml -Destination $Path
+    $boilerplateCIYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'ci_for_init.yml'
+    $destYmlPath = New-Item (Join-Path -Path $Path -ChildPath '.ci') -ItemType Directory
+    Copy-Item $boilerplateCIYml -Destination (Join-Path $destYmlPath -ChildPath 'ci.yml') -Force
 
-    $boilerplateTestYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'test.yml'
-    Copy-Item $boilerplateTestYml -Destination $Path
+    $boilerplateTestYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'test_for_init.yml'
+    Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'test.yml') -Force
 }
 
 function Show-Failure {
@@ -165,6 +166,47 @@ function Invoke-ScriptAnalyzer {
 function Test-Result
 {
 
+}
+
+<#
+.SYNOPSIS
+Generates help file stubs.
+
+.DESCRIPTION
+Generates stubs for about_*.md help documentation for a given module.
+
+.PARAMETER ProjectRoot
+The repository root directory path.
+
+.PARAMETER ModuleName
+The name of the module to generate help for.
+
+.PARAMETER Culture
+The culture or locale the help is to be generated in/for.
+#>
+function Initialize-PSPackageProjectHelp {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]
+        $ProjectRoot,
+
+        [Parameter(Mandatory)]
+        [string]
+        $ModuleName,
+
+        [Parameter()]
+        [cultureinfo]
+        $Culture = [cultureinfo]::CurrentCulture
+    )
+
+    $ProjectRoot = Resolve-Path -Path $ProjectRoot
+
+    $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture
+
+    $null = New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
+
+    New-MarkdownAboutHelp -OutputFolder $helpResourcePath -AboutName $ModuleName
 }
 
 #endregion Private implementation functions
@@ -269,11 +311,11 @@ function Invoke-BinSkim
             'Desktop' { 'Windows PowerShell' }
         }
 
-    Publish-AzDevOpsArtifact -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    Publish-AzDevOpsTestResult -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
     return ./binskim-results.xml
 }
 
-function Publish-AzDevOpsArtifact
+function Publish-AzDevOpsTestResult
 {
     param(
         [parameter(Mandatory)]
@@ -293,47 +335,6 @@ function Publish-AzDevOpsArtifact
     {
         Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
     }
-}
-
-<#
-.SYNOPSIS
-Generates help file stubs.
-
-.DESCRIPTION
-Generates stubs for about_*.md help documentation for a given module.
-
-.PARAMETER ProjectRoot
-The repository root directory path.
-
-.PARAMETER ModuleName
-The name of the module to generate help for.
-
-.PARAMETER Culture
-The culture or locale the help is to be generated in/for.
-#>
-function New-PSPackageProjectHelpStub {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory)]
-        [string]
-        $ProjectRoot,
-
-        [Parameter(Mandatory)]
-        [string]
-        $ModuleName,
-
-        [Parameter()]
-        [cultureinfo]
-        $Culture = [cultureinfo]::CurrentCulture
-    )
-
-    $ProjectRoot = Resolve-Path -Path $ProjectRoot
-
-    $helpResourcePath = GetHelpPath -ProjectRoot $ProjectRoot -Culture $Culture
-
-    New-Item -Path $helpResourcePath -ItemType Directory -ErrorAction Stop
-
-    New-MarkdownAboutHelp -OutputFolder $helpResourcePath -AboutName $ModuleName
 }
 
 <#
@@ -461,7 +462,7 @@ function Initialize-PSPackageProject {
 
     $ModuleRoot = (Resolve-Path $ModuleBase -ea SilentlyContinue ).Path
     if ( $ModuleRoot -and ! $force ) {
-        throw "'${ModuleRule}' already exists, use -Force to overwrite"
+        throw "'${ModuleRoot}' already exists, use -Force to overwrite"
     }
 
     if ( ! $ModuleRoot ) {
@@ -475,28 +476,23 @@ function Initialize-PSPackageProject {
 
     # Create the help directory
     # and populate a couple of files
-    $currentCulture = [System.Globalization.CultureInfo]::CurrentCulture.Name
-    $ModuleInfo['Culture'] = $currentCulture
-    $helpBase = [System.IO.Path]::Join($ModuleRoot, "Help", $currentCulture)
-    $aboutMod = [System.IO.Path]::Join($helpBase, "${ModuleName}.md")
-    $null = New-Item -Type Directory $helpBase -Force
-    "# About Module $ModuleName" | Out-File -FilePath $aboutMod
+    Initialize-PSPackageProjectHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName
 
     # Create the scaffold for .psd1 and .psm1
-    $moduleSourceBase = [System.IO.Path]::Join($ModuleRoot, "src")
+    $moduleSourceBase = Join-Path $ModuleRoot "src"
     $null = New-Item -ItemType Directory -Path $moduleSourceBase
-    $moduleFileWithoutExtension = [system.io.path]::join($moduleSourceBase, ${ModuleName})
+    $moduleFileWithoutExtension = Join-Path $moduleSourceBase ${ModuleName}
     New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1"
     $null = New-Item -Type File "${moduleFileWithoutExtension}.psm1"
 
     # Create a directory for cs sources and create a classlib csproj file with
     # System.Management.Automation as a package reference
-    $moduleCodeBase = [System.IO.Path]::Join($moduleSourceBase, "code")
+    $moduleCodeBase = Join-Path $moduleSourceBase "code"
     $null = New-Item -ItemType Directory -Path $moduleCodeBase
     try {
         Push-Location $moduleCodeBase
         $output = dotnet new classlib -f netstandard2.0 --no-restore --force
-        $output += dotnet add package PowerShellStandard.Library
+        $output += dotnet add package PowerShellStandard.Library --no-restore
         Move-Item code.csproj "${ModuleName}.csproj"
         @"
 using System;
@@ -523,7 +519,7 @@ namespace ${ModuleName}
     }
 
     # make test folder and create a test template
-    $testDir = Join-Path $moduleRoot Test
+    $testDir = Join-Path $moduleRoot 'test'
     $testTemplate = Join-Path $testDir "${moduleName}.Tests.ps1"
     $null = New-Item -ItemType Directory -Path "${testDir}"
     @"
@@ -545,7 +541,28 @@ Describe "Test ${moduleName}" {
 
     # make CI ymls
     Initialize-CIYml -Path ${moduleRoot}
+
+    # make build.ps1
+    $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
+    Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
+
+    # make pspackageproject.json
+    $jsonPrj =
+    @{
+        SourcePath = 'src'
+        ModuleName = "${ModuleName}"
+        TestPath = 'test'
+        HelpPath = 'help'
+        BuildOutputPath = 'out'
+    } | ConvertTo-Json
+
+    if($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
+        Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
+    }
+    else {
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
+    }
 }
 
 #endregion Public commands
-

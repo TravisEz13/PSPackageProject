@@ -11,29 +11,14 @@ jobs:
   displayName: ${{ parameters.displayName }}
   steps:
   - ${{ parameters.powershellExecutable }}: |
-        Install-Module -Name "PSScriptAnalyzer","platyPS","Pester" -Force
+      Install-Module -Name "PSScriptAnalyzer","platyPS","Pester" -Force
     displayName: Install dependencies
   - ${{ parameters.powershellExecutable }}: |
-      if ($env:SKIP_INSTALL -eq 'true')
-      {
-        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-      }
-      else
-      {
-        Install-Module -Name PSPackageProject -Force
-      }
+      Install-Module -Name PSPackageProject -Force
     displayName: Install PSPackageProject module
   - ${{ parameters.powershellExecutable }}: |
-      if ($env:SKIP_INSTALL -eq 'true')
-      {
-        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-      }
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
   - ${{ parameters.powershellExecutable }}: |
-      if ($env:SKIP_INSTALL -eq 'true')
-      {
-        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-      }
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
