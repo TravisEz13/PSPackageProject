@@ -553,7 +553,7 @@ Describe "Test ${moduleName}" {
         TestPath = 'test'
         HelpPath = 'help'
         BuildOutputPath = 'out'
-    } | ConvertTo-Json | Out-File (Join-Path ${moduleRoot} "pspackageproject.json")
+    } | ConvertTo-Json | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8BOM
 }
 
 #endregion Public commands
