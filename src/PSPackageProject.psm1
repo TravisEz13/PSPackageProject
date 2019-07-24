@@ -161,6 +161,11 @@ function Invoke-ScriptAnalyzer {
     }
 }
 
+function Test-Result
+{
+
+}
+
 #endregion Private implementation functions
 
 #region Public commands
