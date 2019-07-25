@@ -27,7 +27,12 @@ jobs:
       Register-PSRepository -Name $sourceName -SourceLocation '$(System.ArtifactsDirectory)' -ErrorAction Ignore
       Save-Package -Name "PSScriptAnalyzer","platyPS","Pester" -Source https://www.powershellgallery.com/api/v2 -Path '$(System.ArtifactsDirectory)' -ProviderName NuGet
       $rawConfig = Get-Content $env:BUILD_SOURCESDIRECTORY/pspackageproject.json | ConvertTo-Json
+
+      Write-Verbose -Verbose "Rawconfig = ($rawConfig | Out-String)"
+
       $buildOutputPath = Join-Path $env:BUILD_SOURCESDIRECTORY $rawConfig.BuildOutputPath
+
+      Write-Verbose -Verbose "buildOutputPath = $buildOutputPath"
       $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
       Install-Module -Name PSPackageProject -Repository $sourceName -Force
     displayName: Extract product artifact
