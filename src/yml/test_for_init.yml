@@ -28,9 +28,12 @@ jobs:
 
   - ${{ parameters.powershellExecutable }}: |
       $sourceName = 'pspackageproject-local-repo'
-      $buildOutputPath = (Get-PSPackageProjectConfig).BuildOutputPath
-      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
       Register-PSRepository -Name $sourceName -SourceLocation '$(System.ArtifactsDirectory)' -ErrorAction Ignore
+      $config = Get-PSPackageProjectConfig
+      $buildOutputPath = $config.BuildOutputPath
+      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
+      $moduleName = $config.ModuleName
+      Save-Module -Repository $sourceName -Name $moduleName -Path $config.BuildOutputPath
     displayName: Extract product artifact
 
   - ${{ parameters.powershellExecutable }}: |

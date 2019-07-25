@@ -24,18 +24,19 @@ jobs:
 
   - ${{ parameters.powershellExecutable }}: |
       $sourceName = 'pspackageproject-local-repo'
-      $buildOutputPath = (Get-PSPackageProjectConfig).BuildOutputPath
-      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
       Register-PSRepository -Name $sourceName -SourceLocation '$(System.ArtifactsDirectory)' -ErrorAction Ignore
+      Save-Package -Name "PSScriptAnalyzer","platyPS","Pester" -Source https://www.powershellgallery.com/api/v2 -Path '$(System.ArtifactsDirectory)' -ProviderName NuGet
+      $rawConfig = Get-Content $env:BUILD_SOURCESDIRECTORY/pspackageproject.json | ConvertTo-Json
+      $buildOutputPath = Join-Path $env:BUILD_SOURCESDIRECTORY $rawConfig.BuildOutputPath
+      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
+      Install-Module -Name PSPackageProject -Repository $sourceName -Force
     displayName: Extract product artifact
 
   - ${{ parameters.powershellExecutable }}: |
-      Install-Module -Name PSPackageProject -Force -Repository 'pspackageproject-local-repo'
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
 
   - ${{ parameters.powershellExecutable }}: |
-      Install-Module -Name PSPackageProject -Force -Repository 'pspackageproject-local-repo'
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
 
