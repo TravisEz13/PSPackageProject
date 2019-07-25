@@ -722,11 +722,12 @@ Describe "Test ${moduleName}" {
     # make pspackageproject.json
     $jsonPrj =
     @{
-        SourcePath = 'src'
+        SourcePath = Join-Path $moduleRoot "src"
         ModuleName = "${ModuleName}"
-        TestPath = 'test'
-        HelpPath = 'help'
-        BuildOutputPath = 'out'
+        TestPath = Join-Path $moduleRoot 'test'
+        HelpPath = Join-Path $moduleRoot 'help'
+        BuildOutputPath = Join-Path $moduleRoot 'out'
+        Culture = "$Culture"
     } | ConvertTo-Json
 
     if($(${PSVersionTable}.PSEdition) -eq 'Desktop') {

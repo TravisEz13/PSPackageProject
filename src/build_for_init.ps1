@@ -1,12 +1,22 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-param(
+param (
+    [Parameter(ParameterSetName="build")]
     [switch]
     $Clean,
 
+    [Parameter(ParameterSetName="build")]
     [switch]
-    $Build
+    $Build,
+
+    [Parameter(ParameterSetName="build")]
+    [switch]
+    $Test,
+
+    [Parameter(ParameterSetName="help")]
+    [switch]
+    $UpdateHelp
 )
 
 $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
@@ -16,6 +26,7 @@ $script:SrcPath = $config.SourceRootPath
 $script:OutDirectory = $config.BuildOutputPath
 
 $script:ModuleRoot = Join-Path $PSScriptRoot $SrcPath
+$script:Culture = $config.Culture
 
 <#
 .DESCRIPTION
@@ -24,6 +35,30 @@ Implement build and packaging of the package and place the output $OutDirectory/
 function DoBuild
 {
     Write-Verbose -Verbose "Starting DoBuild"
+
+    # copy psm1 and psd1 files
+    copy-item "${SrcPath}/${ModuleName}.psd1" "${OutDirectory}/${ModuleName}"
+    copy-item "${SrcPath}/${ModuleName}.psm1" "${OutDirectory}/${ModuleName}"
+    # copy format files here
+    #
+
+    # copy help
+    copy-item -Recurse "${SrcPath}/Help/${Culture}" "${OutDirectory}/${ModuleName}"
+
+    # 
+    try {
+        Push-Location "${SrcPath}/code"
+        $result = dotnet publish
+        copy-item "${SrcPath}/src/code/bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "${OutDirectory}/${ModuleName}"
+    }
+    catch {
+        $result | ForEach-Object { Write-Warning $_ }
+        Write-Error "dotnet build failed"
+    }
+    finally {
+        Pop-Location
+    }
+
     ## Add build and packaging here
     Write-Verbose -Verbose "Ending DoBuild"
 }
