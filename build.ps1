@@ -9,7 +9,7 @@ param(
     $Build
 )
 
-$config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
+$config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
