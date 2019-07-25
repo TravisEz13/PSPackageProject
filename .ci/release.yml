@@ -20,4 +20,4 @@ jobs:
     displayName: 'Install NuGet'
   - pwsh: |
         nuget push $(System.ArtifactsDirectory)\nupkg\*.nupkg -ApiKey $(NuGetApiKey) -Source https://www.powershellgallery.com/api/v2/package/ -NonInteractive
-    displayName: Install dependencies
+    displayName: Publish Package

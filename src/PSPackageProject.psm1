@@ -565,6 +565,7 @@ function New-PSPackageProjectPackage
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
     $scriptsLocation = $modulesLocation
 
+    # TODO : dynamically detect module dependecies and save them
     Save-Package2 -Name PlatyPs -Location $modulesLocation
     Save-Package2 -Name Pester -Location $modulesLocation
     Save-Package2 -Name PSScriptAnalyzer -Location $modulesLocation
