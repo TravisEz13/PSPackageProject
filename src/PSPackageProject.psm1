@@ -549,7 +549,28 @@ function Invoke-PSPackageProjectBuild {
 
     $BuildScript.Invoke()
 
+    New-PSPackageProjectPackage
+
     Write-Verbose -Verbose "Finished invoking build script"
+}
+
+function New-PSPackageProjectPackage
+{
+    $config = Get-PSPackageProjectConfiguration
+    $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    $sourceName = 'pspackageproject-local-repo'
+    $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath $sourceName
+    $modulesLocation = Join-Path2 -Path $packageLocation -ChildPath 'modules'
+    $null = New-Item -Path $modulesLocation -Force -ItemType Directory
+    $scriptsLocation = $modulesLocation
+    write-host "$modulesLocation"
+
+    $platyPSInfo = Find-Package -Name PlatyPs
+    $platyPSPath = Join-Path2 -Path $modulesLocation -ChildPath ($platyPSInfo.Name+'.'+$platyPSInfo.Version+'.nupkg')
+    Invoke-WebRequest -Uri https://www.powershellgallery.com/api/v2/package/platyPS/0.14.0 -OutFile $platyPSPath
+
+    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation -erroraction Ignore
+    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake'
 }
 
 function Initialize-PSPackageProject {
