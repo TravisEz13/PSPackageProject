@@ -24,7 +24,7 @@ param (
     $UpdateHelp
 )
 
-$config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
+$config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath

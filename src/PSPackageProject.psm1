@@ -107,9 +107,11 @@ function GetHelpPath {
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
 
+    $config = Get-PSPackageProjectConfiguration
+
     $cultureName = $Culture.Name
 
-    return "$ProjectRoot/help/$cultureName"
+    return (Join-Path2 $ProjectRoot $config.HelpPath $cultureName)
 }
 
 function GetOutputModulePath {
@@ -123,7 +125,9 @@ function GetOutputModulePath {
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
 
-    return "$ProjectRoot/out/$ModuleName"
+    $config = Get-PSPackageProjectConfiguration
+
+    return (Join-Path2 $ProjectRoot $config.BuildOutputPath $ModuleName)
 }
 
 function HasCmdletHelp {
@@ -766,7 +770,18 @@ function Get-PSPackageProjectConfiguration
 
     if(Test-Path $foundConfigFilePath)
     {
-        Get-Content -Path $foundConfigFilePath | ConvertFrom-Json
+        $configObj = Get-Content -Path $foundConfigFilePath | ConvertFrom-Json
+
+        # Populate with full paths
+
+        $projectRoot = Split-Path $foundConfigFilePath
+
+        $configObj.SourcePath = Join-Path $projectRoot -ChildPath $configObj.SourcePath
+        $configObj.TestPath = Join-Path $projectRoot -ChildPath $configObj.TestPath
+        $configObj.HelpPath = Join-Path $projectRoot -ChildPath $configObj.HelpPath
+        $configObj.BuildOutputPath = Join-Path $projectRoot -ChildPath $configObj.BuildOutputPath
+
+        $configObj
     }
     else
     {
