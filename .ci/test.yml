@@ -13,14 +13,32 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name "PSScriptAnalyzer","platyPS","Pester" -Force
     displayName: Install dependencies
+
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download artifacts'
+    inputs:
+      buildType: current
+      downloadType: single
+      artifactName: NuPkg
+      downloadPath: '$(System.ArtifactsDirectory)'
+
   - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-    displayName: Install PSPackageProject module
+      $sourceName = 'pspackageproject-local-repo'
+      $buildOutputPath = (Get-PSPackageProjectConfig).BuildOutputPath
+      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
+      Register-PSRepository -Name $sourceName -SourceLocation '$(System.ArtifactsDirectory)' -ErrorAction Ignore
+    displayName: Extract product artifact
+
   - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
+      Install-Module -Name PSPackageProject -Force -Repository 'pspackageproject-local-repo'
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
+
   - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
+      Install-Module -Name PSPackageProject -Force -Repository 'pspackageproject-local-repo'
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
+
+  - ${{ parameters.powershellExecutable }}: |
+      Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
+    displayName: Unregister temporary PSRepository
