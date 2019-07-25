@@ -336,9 +336,10 @@ function Invoke-PSPackageProjectTest {
     )
 
     END {
+        $config = Get-PSPackageProjectConfiguration
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
-            $resultFile = Invoke-FunctionalValidation -testPath test
+            $resultFile = Invoke-FunctionalValidation -testPath $config.TestPath
             $testResults = Test-Result -path $resultFile
             ##$null = Show-Failures $testResults
         }
