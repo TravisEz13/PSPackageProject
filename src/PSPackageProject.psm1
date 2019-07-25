@@ -190,7 +190,7 @@ function Invoke-StaticValidation {
     foreach ( $validator in $StaticValidators ) {
         Write-Verbose "Running Invoke-${validator}" -Verbose
 
-        $resultFile = & "Invoke-${validator}" -Location $config.BuildOutputPath
+        $resultFile = & "Invoke-${validator}" #-Location $config.BuildOutputPath
         if ( Show-Failure -testResult $resultFile ) {
             $fault = $true
         }
