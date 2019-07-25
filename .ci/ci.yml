@@ -57,5 +57,6 @@ stages:
       imageName: macOS-10.14
 - stage: Release
   displayName: Release Package
+  condition: always()
   jobs:
   - template: release.yml
