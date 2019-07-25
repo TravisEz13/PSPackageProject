@@ -27,9 +27,6 @@ stages:
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
         $(Build.SourcesDirectory)/build.ps1 -Build
       displayName: Build and publish artifact
-    - pwsh: |
-        Start-Sleep -Seconds 10
-      displayName: Sleep for artifacts to upload
 
 - stage: Test
   displayName: Test Package

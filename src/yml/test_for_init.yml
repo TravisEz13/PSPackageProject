@@ -22,8 +22,8 @@ jobs:
     displayName: 'Download artifacts'
     inputs:
       buildType: current
-      downloadType: single
-      artifactName: NuPkg
+      downloadType: specific
+      itemPattern: NuPkg/
       downloadPath: '$(System.ArtifactsDirectory)'
 
   - ${{ parameters.powershellExecutable }}: |
