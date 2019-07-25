@@ -185,12 +185,12 @@ function Invoke-StaticValidation {
     param ( $stagingDirectory, $StaticValidators = @("BinSkim", "ScriptAnalyzer" ) )
     $fault = $false
 
-    $config = Get-PSPackageProjectConfiguration -
+    $config = Get-PSPackageProjectConfiguration
 
     foreach ( $validator in $StaticValidators ) {
         Write-Verbose "Running Invoke-${validator}" -Verbose
 
-        $resultFile = & "Invoke-${validator}" -Location $stagingDirectory
+        $resultFile = & "Invoke-${validator}" -Location $config.BuildOutputPath
         if ( Show-Failure -testResult $resultFile ) {
             $fault = $true
         }
