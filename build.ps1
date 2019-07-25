@@ -9,7 +9,7 @@ param(
     $Build
 )
 
-$config = Get-PSPackageProjectConfiguration -ProjectRoot $PSScriptRoot
+$config = Get-PSPackageProjectConfiguration -ConfigPath $PSScriptRoot
 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
