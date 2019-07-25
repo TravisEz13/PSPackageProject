@@ -172,12 +172,18 @@ function Show-Failure {
 
 function Invoke-FunctionalValidation {
     param ( $testPath, $tags = "*" )
+    $config = Get-PSPackageProjectConfiguration
     try {
-        Push-Location $testPath
-        Invoke-Pester -Path . -tags $tags
+
+        $testResultFile = "result.pester.xml"
+        $modStage = "./{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
+        $command = "import-module ${modStage}; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
+        $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose $_ }
+        return (Join-Path ${testPath} "$testResult")
     }
-    finally {
-        Pop-Location
+    catch {
+        $output | Foreach-Object { Write-Warning "$_" }
+        Write-Error "Error invoking tests"
     }
 }
 
@@ -332,13 +338,13 @@ function Invoke-PSPackageProjectTest {
     END {
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
-            $resultFile = Invoke-FunctionalValidation -testPath $testPath
+            $resultFile = Invoke-FunctionalValidation -testPath test
             $testResults = Test-Result -path $resultFile
             ##$null = Show-Failures $testResults
         }
 
         if ($Type -contains "StaticAnalysis" ) {
-            Invoke-StaticValidation
+            Invoke-StaticValidation -Staging
         }
     }
 }
@@ -696,7 +702,7 @@ namespace ${ModuleName}
     $testTemplate = Join-Path $testDir "${moduleName}.Tests.ps1"
     $null = New-Item -ItemType Directory -Path "${testDir}"
     @"
-Describe "Test ${moduleName}" {
+Describe "Test ${moduleName}" -tags CI {
     BeforeAll {
     }
     BeforeEach {
@@ -722,11 +728,11 @@ Describe "Test ${moduleName}" {
     # make pspackageproject.json
     $jsonPrj =
     @{
-        SourcePath = Join-Path $moduleRoot "src"
+        SourcePath = "src"
         ModuleName = "${ModuleName}"
-        TestPath = Join-Path $moduleRoot 'test'
-        HelpPath = Join-Path $moduleRoot 'help'
-        BuildOutputPath = Join-Path $moduleRoot 'out'
+        TestPath = 'test'
+        HelpPath = 'help'
+        BuildOutputPath = 'out'
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 

@@ -14,6 +14,11 @@ param (
     [switch]
     $Test,
 
+    [Parameter(ParameterSetName="build")]
+    [string[]]
+    [ValidateSet("Functional","Static")]
+    $TestType = @("Functional"),
+
     [Parameter(ParameterSetName="help")]
     [switch]
     $UpdateHelp
@@ -24,6 +29,7 @@ $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
+$script:TestPath = $config.TestPath
 
 $script:ModuleRoot = Join-Path $PSScriptRoot $SrcPath
 $script:Culture = $config.Culture
@@ -45,7 +51,7 @@ function DoBuild
 
     # copy help
     Write-Verbose -Verbose "Copying help files to '${OutDirectory}/${ModuleName}'"
-    copy-item -Recurse "${SrcPath}/Help/${Culture}" "${OutDirectory}/${ModuleName}"
+    copy-item -Recurse "${SrcPath}/help/${Culture}" "${OutDirectory}/${ModuleName}"
 
     if ( Test-Path "${SrcPath}/code" ) {
         Write-Verbose -Verbose "Building assembly and copying to '${OutDirectory}/${ModuleName}'"
@@ -53,7 +59,7 @@ function DoBuild
         try {
             Push-Location "${SrcPath}/code"
             $result = dotnet publish
-            copy-item "${SrcPath}/code/bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "${OutDirectory}/${ModuleName}"
+            copy-item "bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "../../${OutDirectory}/${ModuleName}"
         }
         catch {
             $result | ForEach-Object { Write-Warning $_ }
@@ -63,12 +69,15 @@ function DoBuild
             Pop-Location
         }
     }
+    else {
+        Write-Verbose -Verbose "No code to build in '${SrcPath}/code'"
+    }
 
     ## Add build and packaging here
     Write-Verbose -Verbose "Ending DoBuild"
 }
 
-if ( ! ( Get-Module -EA SilentlyContinue PSPackageProject) ) {
+if ( ! ( Get-Module -ErrorAction SilentlyContinue PSPackageProject) ) {
     Install-Module PSPackageProject
 }
 
@@ -93,6 +102,5 @@ if ($Build.IsPresent)
 }
 
 if ( $Test.IsPresent ) {
-    $ps = (Get-Process -id $PID).MainModule.FileName
-    & $ps -c "import-module './out/${ModuleName}'; Invoke-Pester Test"
+    Invoke-PSPackageProjectTest -Type $TestType
 }
