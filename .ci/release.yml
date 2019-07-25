@@ -8,7 +8,8 @@ jobs:
   pool:
     vmImage: ${{ parameters.imageName }}
   displayName: ${{ parameters.displayName }}
-  condition: and(succeeded(), eq(variables['Build.Reason'], 'Manual'), eq(variables['Publish'], 'Yes'))
+  # add `succeeded(),` to the and statement
+  condition: and( eq(variables['Build.Reason'], 'Manual'), eq(variables['Publish'], 'Yes'))
   steps:
   - task: DownloadBuildArtifacts@0
     displayName: 'Download artifacts'
