@@ -12,10 +12,46 @@ function GetPowerShellName
         }
 
         default
-        { 
+        {
             return 'Windows PowerShell'
         }
     }
+}
+
+function Test-ConfigFile
+{
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    if($Path.EndsWith('pspackageproject.json') -and (Test-Path $Path -PathType Leaf))
+    {
+        return $true
+    }
+}
+
+function SearchConfigFile
+{
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    $startPath = $Path
+
+    do
+    {
+        $configPath = Join-Path $startPath 'pspackageproject.json'
+
+        if(-not (Test-Path $configPath))
+        {
+            $startPath = Split-Path $startPath
+        }
+        else {
+            return $configPath
+        }
+    } while($newPath -ne '')
 }
 
 function Join-Path2 {
@@ -148,10 +184,13 @@ function Invoke-FunctionalValidation {
 function Invoke-StaticValidation {
     param ( $stagingDirectory, $StaticValidators = @("BinSkim", "ScriptAnalyzer" ) )
     $fault = $false
+
+    $config = Get-PSPackageProjectConfiguration
+
     foreach ( $validator in $StaticValidators ) {
         Write-Verbose "Running Invoke-${validator}" -Verbose
 
-        $resultFile = & "Invoke-${validator}" #-Location $stagingDirectory
+        $resultFile = & "Invoke-${validator}" #-Location $config.BuildOutputPath
         if ( Show-Failure -testResult $resultFile ) {
             $fault = $true
         }
@@ -185,7 +224,7 @@ function RunScriptAnalysis {
                 $formattedResult = $result | Out-String
                 Write-Error $formattedResult
             }
-            
+
             if ($env:TF_BUILD) {
                 $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
                 $powershellName = GetPowerShellName
@@ -628,6 +667,34 @@ Describe "Test ${moduleName}" {
     }
     else {
         $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
+    }
+}
+
+function Get-PSPackageProjectConfiguration
+{
+    param(
+        [Parameter()]
+        [string] $ConfigPath = "."
+    )
+
+    $resolvedPath = Resolve-Path $ConfigPath
+
+    $foundConfigFilePath = if (Test-Path $resolvedPath -PathType Container) {
+        SearchConfigFile -Path $resolvedPath
+    }
+    else {
+        if (Test-ConfigFile -Path $resolvedPath) {
+            $resolvedPath
+        }
+    }
+
+    if(Test-Path $foundConfigFilePath)
+    {
+        Get-Content -Path $foundConfigFilePath | ConvertFrom-Json
+    }
+    else
+    {
+        throw "'pspackageproject.json' not found at: $resolvePath or any or its parent"
     }
 }
 
