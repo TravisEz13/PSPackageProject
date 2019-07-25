@@ -556,6 +556,7 @@ function Invoke-PSPackageProjectBuild {
 
 function New-PSPackageProjectPackage
 {
+    $ErrorActionPreference = 'Stop'
     $config = Get-PSPackageProjectConfiguration
     $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
     $sourceName = 'pspackageproject-local-repo'
@@ -563,14 +564,59 @@ function New-PSPackageProjectPackage
     $modulesLocation = Join-Path2 -Path $packageLocation -ChildPath 'modules'
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
     $scriptsLocation = $modulesLocation
-    write-host "$modulesLocation"
 
-    $platyPSInfo = Find-Package -Name PlatyPs
-    $platyPSPath = Join-Path2 -Path $modulesLocation -ChildPath ($platyPSInfo.Name+'.'+$platyPSInfo.Version+'.nupkg')
-    Invoke-WebRequest -Uri https://www.powershellgallery.com/api/v2/package/platyPS/0.14.0 -OutFile $platyPSPath
+    Save-Package2 -Name PlatyPs -Location $modulesLocation
+    Save-Package2 -Name Pester -Location $modulesLocation
+    Save-Package2 -Name PSScriptAnalyzer -Location $modulesLocation
 
     Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation -erroraction Ignore
     Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake'
+
+    $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter "$($config.ModuleName)*.nupkg").FullName
+    Publish-Artifact -Path $nupkgPath -Name nupkg
+}
+
+# Wrapper to push artifact
+function Publish-Artifact
+{
+    param(
+        [Parameter(Mandatory)]
+        [ValidateScript({Test-Path -Path $_})]
+        $Path,
+        [string]
+        $Name
+    )
+
+    if(!$Name)
+    {
+        $artifactName = [system.io.path]::GetFileName($Path)
+    }
+    else
+    {
+        $artifactName = $Name
+    }
+
+    if ($env:TF_BUILD) {
+        # In Azure DevOps
+        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$Path"
+    }
+}
+
+function Save-Package2
+{
+    param(
+        [string]
+        $Name,
+        [String]
+        $Location
+    )
+
+    $packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
+    if($packageInfo)
+    {
+        $packagePath = Join-Path2 -Path $Location -ChildPath ($packageInfo.Name+'.'+$packageInfo.Version+'.nupkg')
+        Invoke-WebRequest -Uri "https://www.powershellgallery.com/api/v2/package/$($packageInfo.Name)/$($packageInfo.Version)" -OutFile $packagePath
+    }
 }
 
 function Initialize-PSPackageProject {
