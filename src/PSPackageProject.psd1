@@ -30,7 +30,7 @@ CompanyName = 'Microsoft Corporation'
 Copyright = '© Microsoft Corporation. All rights reserved'
 
 # Description of the functionality provided by this module
-# Description = ''
+Description = 'Module to help with building and publishing PowerShell packages'
 
 # Minimum version of the PowerShell engine required by this module
 # PowerShellVersion = ''
@@ -110,10 +110,10 @@ PrivateData = @{
         # Tags = @()
 
         # A URL to the license for this module.
-        # LicenseUri = ''
+        LicenseUri = 'https://github.com/TravisEz13/PsAzDevOpsExt/blob/master/LICENSE'
 
         # A URL to the main website for this project.
-        # ProjectUri = ''
+        ProjectUri = 'https://github.com/TravisEz13/PsAzDevOpsExt'
 
         # A URL to an icon representing this module.
         # IconUri = ''
@@ -125,7 +125,7 @@ PrivateData = @{
         # Prerelease = ''
 
         # Flag to indicate whether the module requires explicit user acceptance for install/update/save
-        RequireLicenseAcceptance = $true
+        RequireLicenseAcceptance = $false
 
         # External dependent modules of this module
         # ExternalModuleDependencies = @()
