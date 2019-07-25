@@ -22,7 +22,7 @@ param (
 $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
 
 $script:ModuleName = $config.ModuleName
-$script:SrcPath = $config.SourceRootPath
+$script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
 
 $script:ModuleRoot = Join-Path $PSScriptRoot $SrcPath
@@ -36,6 +36,7 @@ function DoBuild
 {
     Write-Verbose -Verbose "Starting DoBuild"
 
+    Write-Verbose -Verbose "Copying module files to '${OutDirectory}/${ModuleName}'"
     # copy psm1 and psd1 files
     copy-item "${SrcPath}/${ModuleName}.psd1" "${OutDirectory}/${ModuleName}"
     copy-item "${SrcPath}/${ModuleName}.psm1" "${OutDirectory}/${ModuleName}"
@@ -43,27 +44,33 @@ function DoBuild
     #
 
     # copy help
+    Write-Verbose -Verbose "Copying help files to '${OutDirectory}/${ModuleName}'"
     copy-item -Recurse "${SrcPath}/Help/${Culture}" "${OutDirectory}/${ModuleName}"
 
-    # 
-    try {
-        Push-Location "${SrcPath}/code"
-        $result = dotnet publish
-        copy-item "${SrcPath}/src/code/bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "${OutDirectory}/${ModuleName}"
-    }
-    catch {
-        $result | ForEach-Object { Write-Warning $_ }
-        Write-Error "dotnet build failed"
-    }
-    finally {
-        Pop-Location
+    if ( Test-Path "${SrcPath}/code" ) {
+        Write-Verbose -Verbose "Building assembly and copying to '${OutDirectory}/${ModuleName}'"
+        # build code and place it in the staging location
+        try {
+            Push-Location "${SrcPath}/code"
+            $result = dotnet publish
+            copy-item "${SrcPath}/code/bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "${OutDirectory}/${ModuleName}"
+        }
+        catch {
+            $result | ForEach-Object { Write-Warning $_ }
+            Write-Error "dotnet build failed"
+        }
+        finally {
+            Pop-Location
+        }
     }
 
     ## Add build and packaging here
     Write-Verbose -Verbose "Ending DoBuild"
 }
 
-Install-Module PSPackageProject
+if ( ! ( Get-Module -EA SilentlyContinue PSPackageProject) ) {
+    Install-Module PSPackageProject
+}
 
 if ($Clean -and (Test-Path $OutDirectory))
 {
@@ -83,4 +90,9 @@ if ($Build.IsPresent)
 {
     $sb = (Get-Item Function:DoBuild).ScriptBlock
     Invoke-PSPackageProjectBuild -BuildScript $sb
+}
+
+if ( $Test.IsPresent ) {
+    $ps = (Get-Process -id $PID).MainModule.FileName
+    & $ps -c "import-module './out/${ModuleName}'; Invoke-Pester Test"
 }

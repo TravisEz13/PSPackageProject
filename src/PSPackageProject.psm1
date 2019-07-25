@@ -655,7 +655,7 @@ function Initialize-PSPackageProject {
     $moduleSourceBase = Join-Path $ModuleRoot "src"
     $null = New-Item -ItemType Directory -Path $moduleSourceBase
     $moduleFileWithoutExtension = Join-Path $moduleSourceBase ${ModuleName}
-    New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1"
+    New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1" -CmdletsToExport "verb-noun" -RootModule "./${ModuleName}.dll"
     $null = New-Item -Type File "${moduleFileWithoutExtension}.psm1"
 
     # Create a directory for cs sources and create a classlib csproj file with
@@ -727,7 +727,7 @@ Describe "Test ${moduleName}" {
         TestPath = Join-Path $moduleRoot 'test'
         HelpPath = Join-Path $moduleRoot 'help'
         BuildOutputPath = Join-Path $moduleRoot 'out'
-        Culture = "$Culture"
+        Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 
     if($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
