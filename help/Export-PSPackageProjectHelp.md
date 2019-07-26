@@ -26,10 +26,14 @@ them into the staging location.
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Export-PSPackageProjectHelp -ProjectRoot . -ModuleName 'MyModule'
 ```
 
-{{ Add example description here }}
+Builds the module project `MyModule` when the project root is the current directory.
+If `./help` contains `about_MyModule.md` and `Get-Thing.md`,
+and the current culture (`[cultureinfo]::CurrentCulture`) is `en-US`,
+this adds `about_MyModule.txt` and `MyModule-help.xml`
+to `./out/help/en-US`.
 
 ## PARAMETERS
 

@@ -27,10 +27,11 @@ to be filled in.
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Add-PSPackageProjectCmdletHelp -ProjectRoot . -ModuleName 'MyModule'
 ```
 
-{{ Add example description here }}
+Updates the project cmdlet help for the module `MyModule`
+when run from the project root directory of `MyModule`.
 
 ## PARAMETERS
 

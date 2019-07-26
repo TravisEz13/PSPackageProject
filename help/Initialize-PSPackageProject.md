@@ -8,7 +8,7 @@ schema: 2.0.0
 # Initialize-PSPackageProject
 
 ## SYNOPSIS
-{{ Fill in the Synopsis }}
+Scaffolds a new PowerShell project.
 
 ## SYNTAX
 
@@ -17,21 +17,59 @@ Initialize-PSPackageProject [-ModuleName] <String> [-ModuleBase <String>] [-Forc
 ```
 
 ## DESCRIPTION
-{{ Fill in the Description }}
+Creates a new PowerShell project scaffold with all required components:
+
+- A module manifest
+- A script module file
+- A new C# project
+- Azure DevOps CI YAML templates, with
+    - Static analysis CI tasks:
+        - PSScriptAnalyzer checks
+        - BinSkim binary analysis
+- An empty Pester test suite
+- A `build.ps1` build script for building and testing
+- About help templates for the module
 
 ## EXAMPLES
 
 ### Example 1
 ```powershell
-PS C:\> {{ Add example code here }}
+PS C:\> Initialize-PSPackageProject -ModuleName 'MyModule'
 ```
 
-{{ Add example description here }}
+Creates a new PowerShell project for the module `MyModule` in the current directory.
+
+Sets up the following structure:
+
+```text
+$PWD
+  +-- src/
+  |     +-- MyModule.psd1
+  |     +-- MyModule.psm1
+  |     +-- code/
+  |            +-- ModuleName.csproj
+  |            +-- Class1.cs
+  |
+  +-- help/
+  |      +-- en-US/
+  |              +-- about_MyModule.md
+  |
+  +--test/
+  |     + MyModule.Tests.ps1
+  |
+  +-- out/ # Output directory where built module will go
+  |
+  +-- .ci/
+  |     +-- ci.yml
+  |     +-- test.yml
+  |
+  +-- .gitignore
+```
 
 ## PARAMETERS
 
 ### -Force
-{{ Fill Force Description }}
+Will overwrite the contents of the given ModuleBase directory if there are any.
 
 ```yaml
 Type: SwitchParameter
@@ -46,7 +84,7 @@ Accept wildcard characters: False
 ```
 
 ### -ModuleBase
-{{ Fill ModuleBase Description }}
+The root directory of the project to create.
 
 ```yaml
 Type: String
@@ -61,7 +99,7 @@ Accept wildcard characters: False
 ```
 
 ### -ModuleName
-{{ Fill ModuleName Description }}
+The name of the module that the project builds.
 
 ```yaml
 Type: String
