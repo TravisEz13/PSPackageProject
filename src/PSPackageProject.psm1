@@ -184,7 +184,7 @@ function Invoke-StaticValidation {
     #}
 
     Write-Verbose "Running BinSkim" -Verbose
-    $resultBinSkim = Invoke-BinSkim -Location $config.BuildOutputPath
+    $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
     if (Show-Failure -testResult $resultBinSkim) {
         $fault = $true
     }
@@ -426,7 +426,7 @@ Describe "BinSkim" {
 
         $outputPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
         Write-Verbose "Running binskim..." -Verbose
-        & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
+        & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print --recurse  > binskim.log 2>&1
         Write-Verbose "binskim exitcode: $LASTEXITCODE" -Verbose
         $PowerShellName = GetPowerShellName
         Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
