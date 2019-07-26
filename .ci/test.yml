@@ -30,17 +30,16 @@ jobs:
       $buildOutputPath = Join-Path $env:BUILD_SOURCESDIRECTORY $rawConfig.BuildOutputPath
       Write-Verbose -Verbose "buildOutputPath = $buildOutputPath"
       $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
-
-      Find-Module -Repository $sourceName
-
-      Install-Module -Name PSPackageProject -Repository $sourceName -Force
+      Save-Module -Name PSPackageProject -Repository $sourceName -Force -Verbose -Path $buildOutputPath
     displayName: Extract product artifact
 
   - ${{ parameters.powershellExecutable }}: |
+      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
 
   - ${{ parameters.powershellExecutable }}: |
+      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
 

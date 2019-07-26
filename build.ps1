@@ -1,12 +1,27 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-param(
+param (
+    [Parameter(ParameterSetName="build")]
     [switch]
     $Clean,
 
+    [Parameter(ParameterSetName="build")]
     [switch]
-    $Build
+    $Build,
+
+    [Parameter(ParameterSetName="build")]
+    [switch]
+    $Test,
+
+    [Parameter(ParameterSetName="build")]
+    [string[]]
+    [ValidateSet("Functional","StaticAnalysis")]
+    $TestType = @("Functional"),
+
+    [Parameter(ParameterSetName="help")]
+    [switch]
+    $UpdateHelp
 )
 
 $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | ConvertFrom-Json
@@ -55,4 +70,8 @@ if ($Build.IsPresent)
 {
     $sb = (Get-Item Function:DoBuild).ScriptBlock
     Invoke-PSPackageProjectBuild -BuildScript $sb
+}
+
+if ( $Test.IsPresent ) {
+    Invoke-PSPackageProjectTest -Type $TestType
 }

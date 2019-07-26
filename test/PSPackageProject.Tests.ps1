@@ -1,4 +1,4 @@
-Describe "PSPackageProject tests" {
+Describe "PSPackageProject tests" -Tag "CI" {
     BeforeAll {
         $config = Get-PSPackageProjectConfiguration
     }
