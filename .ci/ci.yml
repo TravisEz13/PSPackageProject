@@ -18,7 +18,10 @@ stages:
     displayName: Build Package
     steps:
     - pwsh: |
-        Install-Module -Name "PSScriptAnalyzer","platyPS","Pester" -Force
+        Install-Module -Name "platyPS","Pester" -Force
+      displayName: Install dependencies
+    - pwsh: |
+        Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
       displayName: Install dependencies
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force

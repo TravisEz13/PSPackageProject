@@ -178,10 +178,10 @@ function Invoke-StaticValidation {
     $config = Get-PSPackageProjectConfiguration
 
     Write-Verbose "Running ScriptAnalyzer" -Verbose
-    #$resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
-    #if (Show-Failure -testResult $resultPSSA) {
-    #    $fault = $true
-    #}
+    $resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
+    if (Show-Failure -testResult $resultPSSA) {
+        $fault = $true
+    }
 
     Write-Verbose "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
@@ -591,7 +591,8 @@ function New-PSPackageProjectPackage
     Write-Verbose -Message "Starting dependency download" -Verbose
 
     # TODO : dynamically detect module dependecies and save them
-    Save-Package2 -Name PlatyPs, Pester, PSScriptAnalyzer -Location $modulesLocation
+    Save-Package2 -Name PlatyPs, Pester -Location $modulesLocation
+    Save-Package2 -Name PSScriptAnalyzer -RequiredVersion '1.18.0' -Location $modulesLocation
 
     Write-Verbose -Message "Dependency download complete" -Verbose
     if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
@@ -643,17 +644,17 @@ function Save-Package2
         [string[]]
         $Name,
         [String]
-        $Location
+        $Location,
+        [string]
+        $RequiredVersion
     )
 
-    <#$packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
-    if($packageInfo)
-    {
-        $packagePath = Join-Path2 -Path $Location -ChildPath ($packageInfo.Name+'.'+$packageInfo.Version+'.nupkg')
-        Invoke-WebRequest -Uri "https://www.powershellgallery.com/api/v2/package/$($packageInfo.Name)/$($packageInfo.Version)" -OutFile $packagePath
-    }#>
+    if($RequiredVersion) {
+        Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet -RequiredVersion $RequiredVersion
+    } else {
+        Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
+    }
 
-    Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
 }
 
 function Initialize-PSPackageProject {

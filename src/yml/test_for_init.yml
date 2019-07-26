@@ -11,8 +11,12 @@ jobs:
   displayName: ${{ parameters.displayName }}
   steps:
   - ${{ parameters.powershellExecutable }}: |
-      Install-Module -Name "PSScriptAnalyzer","platyPS","Pester" -Force
+      Install-Module -Name "platyPS","Pester" -Force
     displayName: Install dependencies
+
+  - ${{ parameters.powershellExecutable }}: |
+        Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
+      displayName: Install dependencies
 
   - ${{ parameters.powershellExecutable }}: |
       Install-Module -Name PSPackageProject -Force
