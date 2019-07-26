@@ -339,7 +339,7 @@ function Invoke-PSPackageProjectTest {
         }
 
         if ($Type -contains "StaticAnalysis" ) {
-            Invoke-StaticValidation -Staging
+            Invoke-StaticValidation
         }
     }
 }
@@ -603,19 +603,10 @@ function New-PSPackageProjectPackage
     Save-Package2 -Name PlatyPs, Pester, PSScriptAnalyzer -Location $modulesLocation
 
     Write-Verbose -Message "Dependency download complete" -Verbose
+    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
 
-    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation #-ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation
-
-    Write-Verbose -Verbose "modulePath = $modulePath"
-
-    Get-PSRepository | out-string | Write-Verbose -Verbose
-
-    Find-Module -Repository $sourceName | Out-String | Write-Verbose -Verbose
-
-    Get-Module PowerShellGet | Out-String | Write-Verbose -Verbose
-    Get-Module PackageManagement | Out-String | Write-Verbose -Verbose
-
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force -Verbose
+    Write-Verbose -Verbose "Starting to publish module: $modulePath"
+    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
 
     Write-Verbose -Message "Local package published" -Verbose
 
