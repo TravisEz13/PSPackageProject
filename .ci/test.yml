@@ -47,3 +47,4 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
     displayName: Unregister temporary PSRepository
+    condition: always()
