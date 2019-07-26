@@ -579,6 +579,7 @@ function New-PSPackageProjectPackage
     Find-Module -Repository $sourceName | Out-String | Write-Verbose -Verbose
 
     Get-Module PowerShellGet | Out-String | Write-Verbose -Verbose
+    Get-Module PackageManagement | Out-String | Write-Verbose -Verbose
 
     Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force -Verbose
 
