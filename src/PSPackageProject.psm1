@@ -164,7 +164,7 @@ function Invoke-FunctionalValidation {
         $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
         $command = "import-module ${modStage} -Force -Verbose; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
         $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose $_ }
-        return (Join-Path ${testPath} "$testResult")
+        return (Join-Path ${testPath} "$testResultFile")
     }
     catch {
         $output | Foreach-Object { Write-Warning "$_" }
