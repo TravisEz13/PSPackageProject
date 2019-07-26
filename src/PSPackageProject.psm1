@@ -377,6 +377,10 @@ Describe "BinSkim" {
     $eligbleFiles = @(Get-ChildItem -Path $Location -Filter $Filter -Recurse | Where-Object { $_.Extension -in '.exe','.dll','','.so','.dylib'})
     if($eligbleFiles.Count -ne 0)
     {
+        Write-Verbose "begin eligbleFiles" -Verbose
+        $eligbleFiles | Out-String | Write-Verbose -Verbose
+        Write-Verbose "end eligbleFiles" -Verbose
+
         $sourceName = 'Nuget'
         Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
         $packageName = 'microsoft.codeanalysis.binskim'
@@ -424,6 +428,7 @@ Describe "BinSkim" {
         Write-Verbose "Running binskim..." -Verbose
         & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
         Write-Verbose "binskim exitcode: $LASTEXITCODE" -Verbose
+        $PowerShellName = GetPowerShellName
         Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
 
         $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
@@ -435,7 +440,6 @@ Describe "BinSkim" {
         Write-Verbose "Generating test results..." -Verbose
 
         Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
-        $PowerShellName = GetPowerShellName
 
         Publish-AzDevOpsTestResult -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
         return ./binskim-results.xml
