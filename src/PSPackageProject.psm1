@@ -319,6 +319,7 @@ function Invoke-PSPackageProjectTest {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation
             $null = Show-Failure $testResults
+            Publish-AzDevOpsTestResult -Path $resultFile
         }
 
         if ($Type -contains "StaticAnalysis" ) {
