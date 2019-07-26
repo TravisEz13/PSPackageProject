@@ -330,7 +330,7 @@ function Invoke-PSPackageProjectTest {
 }
 
 function Invoke-BinSkim {
-    [CmdletBinding(DefaultParameterSetName = 'default')]
+    [CmdletBinding(DefaultParameterSetName = 'byPath')]
     param(
         [Parameter(ParameterSetName = 'byPath', Mandatory)]
         [string]
@@ -412,13 +412,8 @@ Describe "BinSkim" {
             chmod a+x $toolLocation
         }
 
-        if ($Location) {
-            $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
-            $toAnalyze = Join-Path2 -Path $resolvedPath -ChildPath $Filter
-        }
-        else {
-            $toAnalyze = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, '*'
-        }
+        $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
+        $toAnalyze = Join-Path2 -Path $resolvedPath -ChildPath $Filter
 
         $outputPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
         Write-Verbose "Running binskim..." -Verbose
