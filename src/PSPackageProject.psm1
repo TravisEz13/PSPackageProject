@@ -590,7 +590,9 @@ function New-PSPackageProjectPackage
     Save-Package2 -Name PlatyPs, Pester, PSScriptAnalyzer -Location $modulesLocation
 
     Write-Verbose -Message "Dependency download complete" -Verbose
-    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
+    if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
+        Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
+    }
 
     Write-Verbose -Verbose "Starting to publish module: $modulePath"
     Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
