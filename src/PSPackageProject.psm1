@@ -726,17 +726,10 @@ Describe "Test ${moduleName}" -tags CI {
     # make pspackageproject.json
     $jsonPrj =
     @{
-<<<<<<< HEAD
         SourcePath = "src"
         ModuleName = "${ModuleName}"
         TestPath = 'test'
         HelpPath = 'help'
-=======
-        SourcePath      = 'src'
-        ModuleName      = "${ModuleName}"
-        TestPath        = 'test'
-        HelpPath        = 'help'
->>>>>>> Add tests and help stubs
         BuildOutputPath = 'out'
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
