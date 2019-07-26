@@ -13,14 +13,38 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name "PSScriptAnalyzer","platyPS","Pester" -Force
     displayName: Install dependencies
+
+  - task: DownloadBuildArtifacts@0
+    displayName: 'Download artifacts'
+    inputs:
+      buildType: current
+      downloadType: specific
+      itemPattern: '**/*.nupkg'
+      downloadPath: '$(System.ArtifactsDirectory)'
+
   - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-    displayName: Install PSPackageProject module
+      $sourceName = 'pspackageproject-local-repo'
+      Register-PSRepository -Name $sourceName -SourceLocation '$(System.ArtifactsDirectory)' -ErrorAction Ignore
+      Save-Package -Name "PSScriptAnalyzer","platyPS","Pester" -Source https://www.powershellgallery.com/api/v2 -Path '$(System.ArtifactsDirectory)' -ProviderName NuGet
+      $rawConfig = Get-Content $env:BUILD_SOURCESDIRECTORY/pspackageproject.json | ConvertFrom-Json
+      $buildOutputPath = Join-Path $env:BUILD_SOURCESDIRECTORY $rawConfig.BuildOutputPath
+      Write-Verbose -Verbose "buildOutputPath = $buildOutputPath"
+      $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
+
+      Find-Module -Repository $sourceName
+
+      Install-Module -Name PSPackageProject -Repository $sourceName -Force
+    displayName: Extract product artifact
+
   - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
+
   - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
+
+  - ${{ parameters.powershellExecutable }}: |
+      Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
+    displayName: Unregister temporary PSRepository
+    condition: always()

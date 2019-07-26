@@ -3,36 +3,30 @@
 
 #region Private implementation functions
 
-function GetPowerShellName
-{
-    switch($PSVersionTable.PSEdition) {
-        'Core'
-        {
+function GetPowerShellName {
+    switch ($PSVersionTable.PSEdition) {
+        'Core' {
             return 'PowerShell Core'
         }
 
-        default
-        {
+        default {
             return 'Windows PowerShell'
         }
     }
 }
 
-function Test-ConfigFile
-{
+function Test-ConfigFile {
     param(
         [Parameter(Mandatory)]
         [string] $Path
     )
 
-    if($Path.EndsWith('pspackageproject.json') -and (Test-Path $Path -PathType Leaf))
-    {
+    if ($Path.EndsWith('pspackageproject.json') -and (Test-Path $Path -PathType Leaf)) {
         return $true
     }
 }
 
-function SearchConfigFile
-{
+function SearchConfigFile {
     param(
         [Parameter(Mandatory)]
         [string] $Path
@@ -40,18 +34,16 @@ function SearchConfigFile
 
     $startPath = $Path
 
-    do
-    {
+    do {
         $configPath = Join-Path $startPath 'pspackageproject.json'
 
-        if(-not (Test-Path $configPath))
-        {
+        if (-not (Test-Path $configPath)) {
             $startPath = Split-Path $startPath
         }
         else {
             return $configPath
         }
-    } while($newPath -ne '')
+    } while ($newPath -ne '')
 }
 
 function Join-Path2 {
@@ -93,7 +85,7 @@ function RunProjectBuild {
         $ProjectRoot
     )
 
-    & "$ProjectRoot/build.ps1" -Clean
+    & "$ProjectRoot/build.ps1" -Clean -Build
 }
 
 function GetHelpPath {
@@ -107,9 +99,11 @@ function GetHelpPath {
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
 
+    $config = Get-PSPackageProjectConfiguration
+
     $cultureName = $Culture.Name
 
-    return "$ProjectRoot/help/$cultureName"
+    return (Join-Path2 $ProjectRoot $config.HelpPath $cultureName)
 }
 
 function GetOutputModulePath {
@@ -123,7 +117,9 @@ function GetOutputModulePath {
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
 
-    return "$ProjectRoot/out/$ModuleName"
+    $config = Get-PSPackageProjectConfiguration
+
+    return (Join-Path2 $ProjectRoot $config.BuildOutputPath $ModuleName)
 }
 
 function HasCmdletHelp {
@@ -196,7 +192,7 @@ function Invoke-StaticValidation {
     foreach ( $validator in $StaticValidators ) {
         Write-Verbose "Running Invoke-${validator}" -Verbose
 
-        $resultFile = & "Invoke-${validator}" #-Location $config.BuildOutputPath
+        $resultFile = & "Invoke-${validator}" -Location $config.BuildOutputPath
         if ( Show-Failure -testResult $resultFile ) {
             $fault = $true
         }
@@ -220,9 +216,9 @@ function RunScriptAnalysis {
     try {
         Push-Location
         $pssaParams = @{
-            Severity = 'Warning','ParseError'
-            Path = GetOutputModulePath -ProjectRoot $ProjectRoot -ModuleName $ModuleName
-            Recurse = $true
+            Severity = 'Warning', 'ParseError'
+            Path     = GetOutputModulePath -ProjectRoot $ProjectRoot -ModuleName $ModuleName
+            Recurse  = $true
         }
         $results = Invoke-ScriptAnalyzer @pssaParams
         if ( $results ) {
@@ -269,13 +265,11 @@ function ConvertPssaDiagnosticsToNUnit {
     $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.tests.ps1"
     $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.xml"
 
-    try
-    {
+    try {
         Set-Content -Path $testPath -Value $sb.ToString()
         Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
     }
-    finally
-    {
+    finally {
         Remove-Item -Path $testPath -Force
     }
 
@@ -341,26 +335,57 @@ function Invoke-PSPackageProjectTest {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation -testPath $config.TestPath
             $testResults = Test-Result -path $resultFile
-            ##$null = Show-Failures $testResults
+            $null = Show-Failure $testResults
         }
 
         if ($Type -contains "StaticAnalysis" ) {
-            Invoke-StaticValidation -Staging
+            Invoke-StaticValidation
         }
     }
 }
 
-function Invoke-BinSkim
-{
-    [CmdletBinding(DefaultParameterSetName='default')]
+function Invoke-BinSkim {
+    [CmdletBinding(DefaultParameterSetName = 'default')]
     param(
-        [Parameter(ParameterSetName='byPath',Mandatory)]
+        [Parameter(ParameterSetName = 'byPath', Mandatory)]
         [string]
         $Location,
-        [Parameter(ParameterSetName='byPath')]
+        [Parameter(ParameterSetName = 'byPath')]
         [string]
         $Filter = '*'
     )
+
+    $testscript = @'
+Describe "BinSkim" {
+    BeforeAll{
+        $outputPath =  Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+        $results = Get-Content $outputPath | ConvertFrom-Json
+    }
+
+    foreach($file in $results.runs.files.PsObject.Properties.Name)
+    {
+        foreach($rule in $results.runs.rules.psobject.properties.name)
+        {
+            $fileResults = @($results.runs.results |
+                Where-Object {
+                    Write-Verbose "$($_.ruleId) -eq $rule"
+                    $_.locations.analysisTarget.uri -eq $File -and $_.ruleId -eq $rule})
+
+            $message = $null
+            if($fileResults.Count -ne 0) {
+                $fileResult = $fileResults[0]
+                $message = $results.runs.rules.$rule.messageFormats.($fileResult.Level) -f ($fileResult.formattedRuleMessage.arguments)
+            }
+
+            if($message){
+                it "$file should not have errors for " {
+                    throw $message
+                }
+            }
+        }
+    }
+}
+'@
 
     $sourceName = 'Nuget'
     Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
@@ -368,20 +393,16 @@ function Invoke-BinSkim
     $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
     Write-Verbose "Finding binskim..." -Verbose
     $packageInfo = Find-Package -Name $packageName -Source $sourceName
-    if($IsLinux)
-    {
-        $binaryName ='BinSkim'
+    if ($IsLinux) {
+        $binaryName = 'BinSkim'
         $rid = 'linux-x64'
     }
-    elseif($IsWindows -ne $false)
-    {
-        $binaryName ='BinSkim.exe'
-        if([Environment]::Is64BitOperatingSystem)
-        {
+    elseif ($IsWindows -ne $false) {
+        $binaryName = 'BinSkim.exe'
+        if ([Environment]::Is64BitOperatingSystem) {
             $rid = 'win-x64'
         }
-        else
-        {
+        else {
             $rid = 'win-x86'
         }
     }
@@ -392,32 +413,32 @@ function Invoke-BinSkim
 
     $dirName = $packageInfo.Name + '.' + $packageInfo.Version
     $toolLocation = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
-    if(!(test-path -path $toolLocation))
-    {
+    if (!(test-path -path $toolLocation)) {
         Write-Verbose "Installing binskim..." -Verbose
         $packageInfo | Install-Package -Destination $packageLocation -Force
     }
 
-    if($IsLinux)
-    {
+    if ($IsLinux) {
         chmod a+x $toolLocation
     }
 
-    if($Location)
-    {
+    if ($Location) {
         $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
         $toAnalyze = Join-Path2 -Path $resolvedPath -ChildPath $Filter
     }
-    else
-    {
+    else {
         $toAnalyze = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, '*'
     }
 
-    $outputPath =  Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+    $outputPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
     Write-Verbose "Running binskim..." -Verbose
     & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
 
-    $testsPath = Join-Path2 -Path $PSScriptRoot -ChildPath 'tasks' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+    $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+
+    $null = New-Item -ItemType Directory -Path (Split-Path $testsPath)
+
+    $testscript | Out-File $testsPath -Force
 
     Write-Verbose "Generating test results..." -Verbose
     Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
@@ -427,8 +448,7 @@ function Invoke-BinSkim
     return ./binskim-results.xml
 }
 
-function Publish-AzDevOpsTestResult
-{
+function Publish-AzDevOpsTestResult {
     param(
         [parameter(Mandatory)]
         [string]
@@ -443,8 +463,7 @@ function Publish-AzDevOpsTestResult
     $artifactPath = (Resolve-Path $Path).ProviderPath
 
     # Just do nothing if we are not in AzDevOps
-    if($env:TF_BUILD)
-    {
+    if ($env:TF_BUILD) {
         Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
     }
 }
@@ -563,25 +582,38 @@ function Invoke-PSPackageProjectBuild {
 
 function New-PSPackageProjectPackage
 {
+    Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
     $ErrorActionPreference = 'Stop'
     $config = Get-PSPackageProjectConfiguration
     $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
     $sourceName = 'pspackageproject-local-repo'
     $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath $sourceName
     $modulesLocation = Join-Path2 -Path $packageLocation -ChildPath 'modules'
+
+    if (Test-Path $modulesLocation) {
+        Remove-Item $modulesLocation -Recurse -Force -ErrorAction Ignore
+    }
+
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
     $scriptsLocation = $modulesLocation
 
-    # TODO : dynamically detect module dependecies and save them
-    Save-Package2 -Name PlatyPs -Location $modulesLocation
-    Save-Package2 -Name Pester -Location $modulesLocation
-    Save-Package2 -Name PSScriptAnalyzer -Location $modulesLocation
+    Write-Verbose -Message "Starting dependency download" -Verbose
 
-    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation -erroraction Ignore
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake'
+    # TODO : dynamically detect module dependecies and save them
+    Save-Package2 -Name PlatyPs, Pester, PSScriptAnalyzer -Location $modulesLocation
+
+    Write-Verbose -Message "Dependency download complete" -Verbose
+    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
+
+    Write-Verbose -Verbose "Starting to publish module: $modulePath"
+    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
+
+    Write-Verbose -Message "Local package published" -Verbose
 
     $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter "$($config.ModuleName)*.nupkg").FullName
     Publish-Artifact -Path $nupkgPath -Name nupkg
+
+    Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
 }
 
 # Wrapper to push artifact
@@ -613,18 +645,20 @@ function Publish-Artifact
 function Save-Package2
 {
     param(
-        [string]
+        [string[]]
         $Name,
         [String]
         $Location
     )
 
-    $packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
+    <#$packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
     if($packageInfo)
     {
         $packagePath = Join-Path2 -Path $Location -ChildPath ($packageInfo.Name+'.'+$packageInfo.Version+'.nupkg')
         Invoke-WebRequest -Uri "https://www.powershellgallery.com/api/v2/package/$($packageInfo.Name)/$($packageInfo.Version)" -OutFile $packagePath
-    }
+    }#>
+
+    Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
 }
 
 function Initialize-PSPackageProject {
@@ -737,7 +771,7 @@ Describe "Test ${moduleName}" -tags CI {
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 
-    if($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
+    if ($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
         Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
         $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
     }
@@ -746,8 +780,7 @@ Describe "Test ${moduleName}" -tags CI {
     }
 }
 
-function Get-PSPackageProjectConfiguration
-{
+function Get-PSPackageProjectConfiguration {
     param(
         [Parameter()]
         [string] $ConfigPath = "."
@@ -764,12 +797,21 @@ function Get-PSPackageProjectConfiguration
         }
     }
 
-    if(Test-Path $foundConfigFilePath)
-    {
-        Get-Content -Path $foundConfigFilePath | ConvertFrom-Json
+    if (Test-Path $foundConfigFilePath) {
+        $configObj = Get-Content -Path $foundConfigFilePath | ConvertFrom-Json
+
+        # Populate with full paths
+
+        $projectRoot = Split-Path $foundConfigFilePath
+
+        $configObj.SourcePath = Join-Path $projectRoot -ChildPath $configObj.SourcePath
+        $configObj.TestPath = Join-Path $projectRoot -ChildPath $configObj.TestPath
+        $configObj.HelpPath = Join-Path $projectRoot -ChildPath $configObj.HelpPath
+        $configObj.BuildOutputPath = Join-Path $projectRoot -ChildPath $configObj.BuildOutputPath
+
+        $configObj
     }
-    else
-    {
+    else {
         throw "'pspackageproject.json' not found at: $resolvePath or any or its parent"
     }
 }
