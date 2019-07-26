@@ -422,7 +422,7 @@ Describe "BinSkim" {
     Write-Verbose "Running binskim..." -Verbose
     & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
     Write-Verbose "binskim exitcode: $LASTEXITCODE" -Verbose
-    Publish-Artifact -Path ./binskim.log -Name binskim-log
+    Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
 
     $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
