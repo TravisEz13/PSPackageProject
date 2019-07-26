@@ -319,7 +319,8 @@ function Invoke-PSPackageProjectTest {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation
             $null = Show-Failure $testResults
-            Publish-AzDevOpsTestResult -Path $resultFile
+            $powershellName = GetPowerShellName
+            Publish-AzDevOpsTestResult -Path $resultFile -Title "Functional Tests -  $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
 
         if ($Type -contains "StaticAnalysis" ) {
