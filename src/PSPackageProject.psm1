@@ -355,6 +355,38 @@ function Invoke-BinSkim {
         $Filter = '*'
     )
 
+    $testscript = @'
+Describe "BinSkim" {
+    BeforeAll{
+        $outputPath =  Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
+        $results = Get-Content $outputPath | ConvertFrom-Json
+    }
+
+    foreach($file in $results.runs.files.PsObject.Properties.Name)
+    {
+        foreach($rule in $results.runs.rules.psobject.properties.name)
+        {
+            $fileResults = @($results.runs.results |
+                Where-Object {
+                    Write-Verbose "$($_.ruleId) -eq $rule"
+                    $_.locations.analysisTarget.uri -eq $File -and $_.ruleId -eq $rule})
+
+            $message = $null
+            if($fileResults.Count -ne 0) {
+                $fileResult = $fileResults[0]
+                $message = $results.runs.rules.$rule.messageFormats.($fileResult.Level) -f ($fileResult.formattedRuleMessage.arguments)
+            }
+
+            if($message){
+                it "$file should not have errors for " {
+                    throw $message
+                }
+            }
+        }
+    }
+}
+'@
+
     $sourceName = 'Nuget'
     Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
     $packageName = 'microsoft.codeanalysis.binskim'
@@ -402,7 +434,11 @@ function Invoke-BinSkim {
     Write-Verbose "Running binskim..." -Verbose
     & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
 
-    $testsPath = Join-Path2 -Path $PSScriptRoot -ChildPath 'tasks' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+    $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
+
+    $null = New-Item -ItemType Directory -Path (Split-Path $testsPath)
+
+    $testscript | Out-File $testsPath -Force
 
     Write-Verbose "Generating test results..." -Verbose
     Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
