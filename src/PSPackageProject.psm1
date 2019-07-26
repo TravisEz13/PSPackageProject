@@ -344,7 +344,10 @@ function Invoke-BinSkim {
 Describe "BinSkim" {
     BeforeAll{
         $outputPath =  Join-Path -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
-        $results = Get-Content $outputPath | ConvertFrom-Json
+        if(Test-Path $outputPath)
+        {
+            $results = Get-Content $outputPath | ConvertFrom-Json
+        }
     }
 
     foreach($file in $results.runs.files.PsObject.Properties.Name)
@@ -619,6 +622,8 @@ function Publish-Artifact
         $Name
     )
 
+    $resolvedPath = (Resolve-Path -Path $Path).ProviderPath
+
     if(!$Name)
     {
         $artifactName = [system.io.path]::GetFileName($Path)
@@ -630,7 +635,7 @@ function Publish-Artifact
 
     if ($env:TF_BUILD) {
         # In Azure DevOps
-        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$Path"
+        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$resolvedPath"
     }
 }
 
