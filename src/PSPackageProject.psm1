@@ -447,6 +447,8 @@ function Publish-AzDevOpsTestResult {
 
     $artifactPath = (Resolve-Path $Path).ProviderPath
 
+    Write-Verbose -Verbose "Uploading $artifactPath"
+
     # Just do nothing if we are not in AzDevOps
     if ($env:TF_BUILD) {
         Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
