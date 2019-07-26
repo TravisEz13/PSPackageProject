@@ -418,9 +418,8 @@ Describe "BinSkim" {
     $outputPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
     Write-Verbose "Running binskim..." -Verbose
     & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
-    if (!(Test-Path $outputPath)) {
-        throw 'binskim output was not created'
-    }
+    Write-Verbose "binskim exitcode: $LASTEXITCODE" -Verbose
+    Publish-Artifact -Path ./binskim.log -Name binskim-log
 
     $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
