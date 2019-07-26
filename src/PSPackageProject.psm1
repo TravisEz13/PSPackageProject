@@ -418,6 +418,9 @@ Describe "BinSkim" {
     $outputPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
     Write-Verbose "Running binskim..." -Verbose
     & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print  > binskim.log 2>&1
+    if (!(Test-Path $outputPath)) {
+        throw 'binskim output was not created'
+    }
 
     $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
@@ -426,6 +429,7 @@ Describe "BinSkim" {
     $testscript | Out-File $testsPath -Force
 
     Write-Verbose "Generating test results..." -Verbose
+
     Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
     $PowerShellName = GetPowerShellName
 
