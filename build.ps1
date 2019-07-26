@@ -29,7 +29,7 @@ function DoBuild
     Copy-Item -Path (Join-Path $script:ModuleRoot 'yml') -Recurse $script:OutModule -Force
     Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule
 
-    #Copy-Item -Path (Join-Path $script:SrcPath 'tasks') -Recurse -Destination $script:OutModule
+    Copy-Item -Path (Join-Path $script:SrcPath 'tasks') -Recurse -Destination $script:OutModule
 
     Write-Verbose -Verbose "Ending DoBuild"
 }
