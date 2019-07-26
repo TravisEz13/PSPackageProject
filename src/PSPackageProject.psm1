@@ -107,19 +107,8 @@ function GetHelpPath {
 }
 
 function GetOutputModulePath {
-    param(
-        [string]
-        $ProjectRoot,
-
-        [string]
-        $ModuleName
-    )
-
-    $ProjectRoot = Resolve-Path -Path $ProjectRoot
-
     $config = Get-PSPackageProjectConfiguration
-
-    return (Join-Path2 $ProjectRoot $config.BuildOutputPath $ModuleName)
+    return (Join-Path $config.BuildOutputPath $config.ModuleName)
 }
 
 function HasCmdletHelp {
@@ -167,12 +156,12 @@ function Show-Failure {
 }
 
 function Invoke-FunctionalValidation {
-    param ( $testPath, $tags = "*" )
+    param ( $testPath, $tags = "CI" )
     $config = Get-PSPackageProjectConfiguration
     try {
 
         $testResultFile = "result.pester.xml"
-        $modStage = "./{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
+        $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
         $command = "import-module ${modStage}; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
         $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose $_ }
         return (Join-Path ${testPath} "$testResult")
@@ -184,43 +173,38 @@ function Invoke-FunctionalValidation {
 }
 
 function Invoke-StaticValidation {
-    param ( $stagingDirectory, $StaticValidators = @("BinSkim", "ScriptAnalyzer" ) )
     $fault = $false
 
     $config = Get-PSPackageProjectConfiguration
 
-    foreach ( $validator in $StaticValidators ) {
-        Write-Verbose "Running Invoke-${validator}" -Verbose
+    Write-Verbose "Running ScriptAnalyzer" -Verbose
+    #$resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
+    #if (Show-Failure -testResult $resultPSSA) {
+    #    $fault = $true
+    #}
 
-        $resultFile = & "Invoke-${validator}" -Location $config.BuildOutputPath
-        if ( Show-Failure -testResult $resultFile ) {
-            $fault = $true
-        }
+    Write-Verbose "Running BinSkim" -Verbose
+    $resultBinSkim = Invoke-BinSkim -Location $config.BuildOutputPath
+    if (Show-Failure -testResult $resultBinSkim) {
+        $fault = $true
     }
+
     if ($fault) {
         throw "Static Validation Errors"
     }
 }
 
 function RunScriptAnalysis {
-    param(
-        [Parameter()]
-        [string]
-        $ProjectRoot,
-
-        [Parameter()]
-        [string]
-        $ModuleName
-    )
-
     try {
         Push-Location
+
         $pssaParams = @{
             Severity = 'Warning', 'ParseError'
-            Path     = GetOutputModulePath -ProjectRoot $ProjectRoot -ModuleName $ModuleName
+            Path     = GetOutputModulePath
             Recurse  = $true
         }
-        $results = Invoke-ScriptAnalyzer @pssaParams
+
+        $results = Invoke-ScriptAnalyzer @pssaParams -Verbose
         if ( $results ) {
             foreach ($result in $results ) {
                 $formattedResult = $result | Out-String
@@ -230,7 +214,10 @@ function RunScriptAnalysis {
             if ($env:TF_BUILD) {
                 $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
                 $powershellName = GetPowerShellName
-                Publish-AzDevOpsArtifact -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
+                Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
+
+                # send back the xml file path.
+                $xmlPath
             }
 
             throw "Script Analyzer failure"
@@ -239,9 +226,6 @@ function RunScriptAnalysis {
     finally {
         Pop-Location
     }
-}
-
-function Test-Result {
 }
 
 function ConvertPssaDiagnosticsToNUnit {
@@ -334,7 +318,6 @@ function Invoke-PSPackageProjectTest {
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation -testPath $config.TestPath
-            $testResults = Test-Result -path $resultFile
             $null = Show-Failure $testResults
         }
 
