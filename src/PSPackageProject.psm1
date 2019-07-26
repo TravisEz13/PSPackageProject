@@ -546,25 +546,39 @@ function Invoke-PSPackageProjectBuild {
 
 function New-PSPackageProjectPackage
 {
+    Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
     $ErrorActionPreference = 'Stop'
     $config = Get-PSPackageProjectConfiguration
     $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
     $sourceName = 'pspackageproject-local-repo'
     $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath $sourceName
     $modulesLocation = Join-Path2 -Path $packageLocation -ChildPath 'modules'
+
+    if (Test-Path $modulesLocation) {
+        Remove-Item $modulesLocation -Recurse -Force -ErrorAction Ignore
+    }
+
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
     $scriptsLocation = $modulesLocation
+
+    Write-Verbose -Message "Starting dependency download" -Verbose
 
     # TODO : dynamically detect module dependecies and save them
     Save-Package2 -Name PlatyPs -Location $modulesLocation
     Save-Package2 -Name Pester -Location $modulesLocation
     Save-Package2 -Name PSScriptAnalyzer -Location $modulesLocation
 
+    Write-Verbose -Message "Dependency download complete" -Verbose
+
     Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation -erroraction Ignore
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake'
+    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
+
+    Write-Verbose -Message "Local package published" -Verbose
 
     $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter "$($config.ModuleName)*.nupkg").FullName
     Publish-Artifact -Path $nupkgPath -Name nupkg
+
+    Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
 }
 
 # Wrapper to push artifact
