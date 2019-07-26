@@ -564,13 +564,11 @@ function New-PSPackageProjectPackage
     Write-Verbose -Message "Starting dependency download" -Verbose
 
     # TODO : dynamically detect module dependecies and save them
-    Save-Package2 -Name PlatyPs -Location $modulesLocation
-    Save-Package2 -Name Pester -Location $modulesLocation
-    Save-Package2 -Name PSScriptAnalyzer -Location $modulesLocation
+    Save-Package2 -Name PlatyPs, Pester, PSScriptAnalyzer -Location $modulesLocation
 
     Write-Verbose -Message "Dependency download complete" -Verbose
 
-    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation
+    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation #-ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation
 
     Write-Verbose -Verbose "modulePath = $modulePath"
 
@@ -620,18 +618,20 @@ function Publish-Artifact
 function Save-Package2
 {
     param(
-        [string]
+        [string[]]
         $Name,
         [String]
         $Location
     )
 
-    $packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
+    <#$packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
     if($packageInfo)
     {
         $packagePath = Join-Path2 -Path $Location -ChildPath ($packageInfo.Name+'.'+$packageInfo.Version+'.nupkg')
         Invoke-WebRequest -Uri "https://www.powershellgallery.com/api/v2/package/$($packageInfo.Name)/$($packageInfo.Version)" -OutFile $packagePath
-    }
+    }#>
+
+    Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
 }
 
 function Initialize-PSPackageProject {
