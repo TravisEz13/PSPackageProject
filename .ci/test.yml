@@ -34,10 +34,12 @@ jobs:
     displayName: Extract product artifact
 
   - ${{ parameters.powershellExecutable }}: |
+      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
 
   - ${{ parameters.powershellExecutable }}: |
+      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
 
