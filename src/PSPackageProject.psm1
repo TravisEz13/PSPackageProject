@@ -570,7 +570,10 @@ function New-PSPackageProjectPackage
 
     Write-Verbose -Message "Dependency download complete" -Verbose
 
-    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation -erroraction Ignore
+    Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation
+
+    Write-Verbose -Message "Dependency download complete" -Verbose
+
     Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
 
     Write-Verbose -Message "Local package published" -Verbose
