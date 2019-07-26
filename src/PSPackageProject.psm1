@@ -374,7 +374,7 @@ Describe "BinSkim" {
     }
 }
 '@
-    $eligbleFiles = @(Get-ChildItem -Path $Location -Filter $Filter -Recurse | Where-Object { $_.Extension -in '.exe','.dll','','.so','.dylib'})
+    $eligbleFiles = @(Get-ChildItem -Path $Location -Filter $Filter -Recurse -File | Where-Object { $_.Extension -in '.exe','.dll','','.so','.dylib'})
     if($eligbleFiles.Count -ne 0)
     {
         Write-Verbose "begin eligbleFiles" -Verbose
