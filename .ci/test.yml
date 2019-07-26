@@ -19,7 +19,7 @@ jobs:
     inputs:
       buildType: current
       downloadType: specific
-      itemPattern: NuPkg/
+      itemPattern: **/*.nupkg
       downloadPath: '$(System.ArtifactsDirectory)'
 
   - ${{ parameters.powershellExecutable }}: |
