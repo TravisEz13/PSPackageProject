@@ -30,10 +30,7 @@ jobs:
       $buildOutputPath = Join-Path $env:BUILD_SOURCESDIRECTORY $rawConfig.BuildOutputPath
       Write-Verbose -Verbose "buildOutputPath = $buildOutputPath"
       $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
-
-      Find-Module -Repository $sourceName
-
-      Install-Module -Name PSPackageProject -Repository $sourceName -Force
+      Install-Module -Name PSPackageProject -Repository $sourceName -Force -Verbose
     displayName: Extract product artifact
 
   - ${{ parameters.powershellExecutable }}: |

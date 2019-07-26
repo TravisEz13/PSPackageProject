@@ -156,13 +156,13 @@ function Show-Failure {
 }
 
 function Invoke-FunctionalValidation {
-    param ( $testPath, $tags = "CI" )
+    param ( $tags = "CI" )
     $config = Get-PSPackageProjectConfiguration
     try {
-
         $testResultFile = "result.pester.xml"
+        $testPath = $config.TestPath
         $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
-        $command = "import-module ${modStage}; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
+        $command = "import-module ${modStage} -Force -Verbose; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
         $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose $_ }
         return (Join-Path ${testPath} "$testResult")
     }
@@ -317,7 +317,7 @@ function Invoke-PSPackageProjectTest {
         $config = Get-PSPackageProjectConfiguration
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
-            $resultFile = Invoke-FunctionalValidation -testPath $config.TestPath
+            $resultFile = Invoke-FunctionalValidation
             $null = Show-Failure $testResults
         }
 
