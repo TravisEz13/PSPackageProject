@@ -572,9 +572,15 @@ function New-PSPackageProjectPackage
 
     Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation -ScriptSourceLocation $scriptsLocation -ScriptPublishLocation $scriptsLocation
 
-    Write-Verbose -Message "Dependency download complete" -Verbose
+    Write-Verbose -Verbose "modulePath = $modulePath"
 
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
+    Get-PSRepository | out-string | Write-Verbose -Verbose
+
+    Find-Module -Repository $sourceName | Out-String | Write-Verbose -Verbose
+
+    Get-Module PowerShellGet | Out-String | Write-Verbose -Verbose
+
+    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force -Verbose
 
     Write-Verbose -Message "Local package published" -Verbose
 
