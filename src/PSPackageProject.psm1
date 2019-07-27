@@ -142,17 +142,50 @@ function Initialize-CIYml {
     Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'test.yml') -Force
 }
 
-function Show-Failure {
-    param ( $testResults, [switch]$throw )
-    $testFailures = $testResults | Where-Object { $_.Result -eq "Failure" }
-    if ( $testFailures ) {
-        $testFailures | Foreach-Object { Write-Error ("TEST FAILURE: " + $_.Name) }
-        if ( $throw ) {
-            throw ("{0} Failures" -f $testFailures.Count)
-        }
-        return $true
+function Test-PSPesterResults
+{
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string] $TestResultsFile = "pester-tests.xml"
+    )
+
+    if (!(Test-Path $TestResultsFile)) {
+        throw "Test result file '$testResultsFile' not found for $TestArea."
     }
-    return $false
+
+    $x = [xml](Get-Content -raw $testResultsFile)
+    if ([int]$x.'test-results'.failures -gt 0) {
+        Write-Error "TEST FAILURES"
+        # switch between methods, SelectNode is not available on dotnet core
+        if ( "System.Xml.XmlDocumentXPathExtensions" -as [Type] ) {
+            $failures = [System.Xml.XmlDocumentXPathExtensions]::SelectNodes($x."test-results", './/test-case[@result = "Failure"]')
+        }
+        else {
+            $failures = $x.SelectNodes('.//test-case[@result = "Failure"]')
+        }
+        foreach ( $testfail in $failures ) {
+            Show-PSPesterError -testFailure $testfail
+        }
+    }
+}
+
+function Show-PSPesterError {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [Xml.XmlElement]$testFailure
+    )
+
+
+    $description = $testFailure.description
+    $name = $testFailure.name
+    $message = $testFailure.failure.message
+    $stackTrace = $testFailure.failure."stack-trace"
+
+    $fullMsg = "`n{0}`n{1}`n{2}`n{3}`{4}" -f ("Description: " + $description), ("Name:        " + $name), "message:", $message, "stack-trace:", $stackTrace
+
+    Write-Error $fullMsg
 }
 
 function Invoke-FunctionalValidation {
@@ -179,9 +212,8 @@ function Invoke-StaticValidation {
 
     Write-Verbose "Running ScriptAnalyzer" -Verbose
     $resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
-    if (Show-Failure -testResult $resultPSSA) {
-        $fault = $true
-    }
+
+    Test-PSPesterResults -TestResultsFile $resultPSSA
 
     Write-Verbose "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
@@ -189,9 +221,7 @@ function Invoke-StaticValidation {
         $fault = $true
     }
 
-    if ($fault) {
-        throw "Static Validation Errors"
-    }
+    Test-PSPesterResults -TestResultsFile $resultBinSkim
 }
 
 function RunScriptAnalysis {
@@ -318,7 +348,7 @@ function Invoke-PSPackageProjectTest {
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation
-            $null = Show-Failure $testResults
+            Test-PSPesterResults -TestResultsFile $resultFile
             $powershellName = GetPowerShellName
             Publish-AzDevOpsTestResult -Path $resultFile -Title "Functional Tests -  $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
