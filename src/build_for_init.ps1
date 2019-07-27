@@ -16,7 +16,7 @@ param (
 
     [Parameter(ParameterSetName="build")]
     [string[]]
-    [ValidateSet("Functional","Static")]
+    [ValidateSet("Functional","StaticAnalysis")]
     $TestType = @("Functional"),
 
     [Parameter(ParameterSetName="help")]
