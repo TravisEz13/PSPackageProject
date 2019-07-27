@@ -235,21 +235,13 @@ function RunScriptAnalysis {
 
         $results = Invoke-ScriptAnalyzer @pssaParams -Verbose
         if ( $results ) {
-            foreach ($result in $results ) {
-                $formattedResult = $result | Out-String
-                Write-Error $formattedResult -ErrorAction Continue
-            }
-
+            $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
+            # send back the xml file path.
+            $xmlPath
             if ($env:TF_BUILD) {
-                $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
                 $powershellName = GetPowerShellName
                 Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
-
-                # send back the xml file path.
-                $xmlPath
             }
-
-            throw "Script Analyzer failure"
         }
     }
     finally {
