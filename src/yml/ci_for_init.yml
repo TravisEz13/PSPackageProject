@@ -64,3 +64,4 @@ stages:
   condition: and( eq(variables['Build.Reason'], 'Manual'), eq(variables['Publish'], 'Yes'))
   jobs:
   - template: release.yml
+  
