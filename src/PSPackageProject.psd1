@@ -54,7 +54,7 @@ Description = 'Module to help with building and publishing PowerShell packages'
 RequiredModules = @(
     @{ ModuleName = 'platyPS'; ModuleVersion = '0.14.0' },
     @{ ModuleName = 'Pester'; ModuleVersion = '4.8.1' },
-    @{ ModuleName = 'PSScriptAnalyzer'; ModuleVersion = '1.18.1' }
+    @{ ModuleName = 'PSScriptAnalyzer'; ModuleVersion = '1.18.0' }
 )
 
 # Assemblies that must be loaded prior to importing this module

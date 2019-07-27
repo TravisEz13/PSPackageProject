@@ -140,19 +140,55 @@ function Initialize-CIYml {
 
     $boilerplateTestYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'test_for_init.yml'
     Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'test.yml') -Force
+
+    $boilerplateReleaseYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'release_for_init.yml'
+    Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'release.yml') -Force
 }
 
-function Show-Failure {
-    param ( $testResults, [switch]$throw )
-    $testFailures = $testResults | Where-Object { $_.Result -eq "Failure" }
-    if ( $testFailures ) {
-        $testFailures | Foreach-Object { Write-Error ("TEST FAILURE: " + $_.Name) }
-        if ( $throw ) {
-            throw ("{0} Failures" -f $testFailures.Count)
-        }
-        return $true
+function Test-PSPesterResults
+{
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [string] $TestResultsFile = "pester-tests.xml"
+    )
+
+    if (!(Test-Path $TestResultsFile)) {
+        throw "Test result file '$testResultsFile' not found for $TestArea."
     }
-    return $false
+
+    $x = [xml](Get-Content -raw $testResultsFile)
+    if ([int]$x.'test-results'.failures -gt 0) {
+        Write-Error "TEST FAILURES"
+        # switch between methods, SelectNode is not available on dotnet core
+        if ( "System.Xml.XmlDocumentXPathExtensions" -as [Type] ) {
+            $failures = [System.Xml.XmlDocumentXPathExtensions]::SelectNodes($x."test-results", './/test-case[@result = "Failure"]')
+        }
+        else {
+            $failures = $x.SelectNodes('.//test-case[@result = "Failure"]')
+        }
+        foreach ( $testfail in $failures ) {
+            Show-PSPesterError -testFailure $testfail
+        }
+    }
+}
+
+function Show-PSPesterError {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [Xml.XmlElement]$testFailure
+    )
+
+
+    $description = $testFailure.description
+    $name = $testFailure.name
+    $message = $testFailure.failure.message
+    $stackTrace = $testFailure.failure."stack-trace"
+
+    $fullMsg = "`n{0}`n{1}`n{2}`n{3}`{4}" -f ("Description: " + $description), ("Name:        " + $name), "message:", $message, "stack-trace:", $stackTrace
+
+    Write-Error $fullMsg
 }
 
 function Invoke-FunctionalValidation {
@@ -178,20 +214,16 @@ function Invoke-StaticValidation {
     $config = Get-PSPackageProjectConfiguration
 
     Write-Verbose "Running ScriptAnalyzer" -Verbose
-    #$resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
-    #if (Show-Failure -testResult $resultPSSA) {
-    #    $fault = $true
-    #}
+    $resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
+
+    Write-Verbose -Verbose "PSSA result file: $resultPSSA"
+
+    Test-PSPesterResults -TestResultsFile $resultPSSA
 
     Write-Verbose "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
-    if (Show-Failure -testResult $resultBinSkim) {
-        $fault = $true
-    }
 
-    if ($fault) {
-        throw "Static Validation Errors"
-    }
+    Test-PSPesterResults -TestResultsFile $resultBinSkim
 }
 
 function RunScriptAnalysis {
@@ -204,23 +236,15 @@ function RunScriptAnalysis {
             Recurse  = $true
         }
 
-        $results = Invoke-ScriptAnalyzer @pssaParams -Verbose
+        $results = Invoke-ScriptAnalyzer @pssaParams
         if ( $results ) {
-            foreach ($result in $results ) {
-                $formattedResult = $result | Out-String
-                Write-Error $formattedResult
-            }
-
+            $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
+            # send back the xml file path.
+            $xmlPath
             if ($env:TF_BUILD) {
-                $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
                 $powershellName = GetPowerShellName
                 Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
-
-                # send back the xml file path.
-                $xmlPath
             }
-
-            throw "Script Analyzer failure"
         }
     }
     finally {
@@ -236,13 +260,13 @@ function ConvertPssaDiagnosticsToNUnit {
     )
 
     $sb = [System.Text.StringBuilder]::new()
-    $null = $sb.Append('Describe "PSScriptAnalyzer Diagnostics" {')
+    $null = $sb.Append("Describe 'PSScriptAnalyzer Diagnostics' { `n")
     foreach ($d in $Diagnostic) {
         $severity = $d.Severity
         $ruleName = $d.RuleName
-        $message = $d.Message
+        $message = $d.Message -replace "'", "``"
         $description = "[$severity] ${ruleName}: $message"
-        $null = $sb.Append("It '$description' { throw 'FAIL' }")
+        $null = $sb.Append("It '$ruleName' { `nthrow '$message' }`n")
     }
     $null = $sb.Append('}')
 
@@ -318,7 +342,7 @@ function Invoke-PSPackageProjectTest {
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation
-            $null = Show-Failure $testResults
+            Test-PSPesterResults -TestResultsFile $resultFile
             $powershellName = GetPowerShellName
             Publish-AzDevOpsTestResult -Path $resultFile -Title "Functional Tests -  $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
@@ -591,7 +615,8 @@ function New-PSPackageProjectPackage
     Write-Verbose -Message "Starting dependency download" -Verbose
 
     # TODO : dynamically detect module dependecies and save them
-    Save-Package2 -Name PlatyPs, Pester, PSScriptAnalyzer -Location $modulesLocation
+    Save-Package2 -Name PlatyPs, Pester -Location $modulesLocation
+    Save-Package2 -Name PSScriptAnalyzer -RequiredVersion '1.18.0' -Location $modulesLocation
 
     Write-Verbose -Message "Dependency download complete" -Verbose
     if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
@@ -643,17 +668,17 @@ function Save-Package2
         [string[]]
         $Name,
         [String]
-        $Location
+        $Location,
+        [string]
+        $RequiredVersion
     )
 
-    <#$packageInfo = Find-Module -Name $Name -erroraction ignore -Repository PSGallery
-    if($packageInfo)
-    {
-        $packagePath = Join-Path2 -Path $Location -ChildPath ($packageInfo.Name+'.'+$packageInfo.Version+'.nupkg')
-        Invoke-WebRequest -Uri "https://www.powershellgallery.com/api/v2/package/$($packageInfo.Name)/$($packageInfo.Version)" -OutFile $packagePath
-    }#>
+    if($RequiredVersion) {
+        Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet -RequiredVersion $RequiredVersion
+    } else {
+        Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
+    }
 
-    Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
 }
 
 function Initialize-PSPackageProject {
