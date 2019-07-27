@@ -213,13 +213,12 @@ function Invoke-StaticValidation {
     Write-Verbose "Running ScriptAnalyzer" -Verbose
     $resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
 
+    Write-Verbose -Verbose "PSSA result file: $resultPSSA"
+
     Test-PSPesterResults -TestResultsFile $resultPSSA
 
     Write-Verbose "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
-    if (Show-Failure -testResult $resultBinSkim) {
-        $fault = $true
-    }
 
     Test-PSPesterResults -TestResultsFile $resultBinSkim
 }
@@ -238,7 +237,7 @@ function RunScriptAnalysis {
         if ( $results ) {
             foreach ($result in $results ) {
                 $formattedResult = $result | Out-String
-                Write-Error $formattedResult
+                Write-Error $formattedResult -ErrorAction Continue
             }
 
             if ($env:TF_BUILD) {
