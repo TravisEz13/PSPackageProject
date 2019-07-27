@@ -33,7 +33,7 @@ jobs:
   - ${{ parameters.powershellExecutable }}: |
       $sourceName = 'pspackageproject-local-repo'
       Register-PSRepository -Name $sourceName -SourceLocation '$(System.ArtifactsDirectory)' -ErrorAction Ignore
-      $config = Get-PSPackageProjectConfig
+      $config = Get-PSPackageProjectConfiguration
       $buildOutputPath = $config.BuildOutputPath
       $null = New-Item -ItemType Directory -Path $buildOutputPath -Verbose
       $moduleName = $config.ModuleName
