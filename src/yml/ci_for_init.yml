@@ -22,7 +22,7 @@ stages:
       displayName: Install dependencies
     - pwsh: |
         Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
-      displayName: Install dependencies
+      displayName: Install PSScriptAnalyzer
     - pwsh: |
         Install-Module -Name PSPackageProject -Force
       displayName: Install PSPackageProject module
@@ -57,3 +57,10 @@ stages:
       jobName: TestPkgWinMacOS
       displayName: PowerShell Core on macOS
       imageName: macOS-10.14
+
+- stage: Release
+  displayName: Release Package
+  # add `succeeded(),` to the and statement
+  condition: and( eq(variables['Build.Reason'], 'Manual'), eq(variables['Publish'], 'Yes'))
+  jobs:
+  - template: release.yml

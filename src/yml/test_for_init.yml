@@ -16,7 +16,7 @@ jobs:
 
   - ${{ parameters.powershellExecutable }}: |
         Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
-      displayName: Install dependencies
+    displayName: Install dependencies
 
   - ${{ parameters.powershellExecutable }}: |
       Install-Module -Name PSPackageProject -Force
@@ -27,7 +27,7 @@ jobs:
     inputs:
       buildType: current
       downloadType: specific
-      itemPattern: NuPkg/
+      itemPattern: '**/*.nupkg'
       downloadPath: '$(System.ArtifactsDirectory)'
 
   - ${{ parameters.powershellExecutable }}: |

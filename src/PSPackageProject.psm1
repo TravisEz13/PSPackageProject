@@ -140,6 +140,9 @@ function Initialize-CIYml {
 
     $boilerplateTestYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'test_for_init.yml'
     Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'test.yml') -Force
+
+    $boilerplateReleaseYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'release_for_init.yml'
+    Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'release.yml') -Force
 }
 
 function Test-PSPesterResults
@@ -233,7 +236,7 @@ function RunScriptAnalysis {
             Recurse  = $true
         }
 
-        $results = Invoke-ScriptAnalyzer @pssaParams -Verbose
+        $results = Invoke-ScriptAnalyzer @pssaParams
         if ( $results ) {
             $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
             # send back the xml file path.
@@ -257,13 +260,13 @@ function ConvertPssaDiagnosticsToNUnit {
     )
 
     $sb = [System.Text.StringBuilder]::new()
-    $null = $sb.Append('Describe "PSScriptAnalyzer Diagnostics" {')
+    $null = $sb.Append("Describe 'PSScriptAnalyzer Diagnostics' { `n")
     foreach ($d in $Diagnostic) {
         $severity = $d.Severity
         $ruleName = $d.RuleName
-        $message = $d.Message
+        $message = $d.Message -replace "'", "``"
         $description = "[$severity] ${ruleName}: $message"
-        $null = $sb.Append("It '$description' { throw 'FAIL' }")
+        $null = $sb.Append("It '$ruleName' { `nthrow '$message' }`n")
     }
     $null = $sb.Append('}')
 
