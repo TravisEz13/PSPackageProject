@@ -16,6 +16,8 @@ stages:
   jobs:
   - job: BuildPkg
     displayName: Build Package
+    pool:
+      vmImage: windows-2019
     steps:
     - pwsh: |
         Install-Module -Name "platyPS","Pester" -Force
