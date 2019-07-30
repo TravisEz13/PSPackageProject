@@ -31,7 +31,7 @@ $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
 $script:TestPath = $config.TestPath
 
-$script:ModuleRoot = Join-Path $PSScriptRoot $SrcPath
+$script:ModuleRoot = $PSScriptRoot
 $script:Culture = $config.Culture
 
 <#
@@ -59,7 +59,7 @@ function DoBuild
         try {
             Push-Location "${SrcPath}/code"
             $result = dotnet publish
-            copy-item "bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "../../${OutDirectory}/${ModuleName}"
+            copy-item "bin/Debug/netstandard2.0/publish/${ModuleName}.dll" "${OutDirectory}/${ModuleName}"
         }
         catch {
             $result | ForEach-Object { Write-Warning $_ }
@@ -103,4 +103,8 @@ if ($Build.IsPresent)
 
 if ( $Test.IsPresent ) {
     Invoke-PSPackageProjectTest -Type $TestType
+}
+
+if ($UpdateHelp.IsPresent) {
+    Add-PSPackageProjectCmdletHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName -Culture $Culture
 }

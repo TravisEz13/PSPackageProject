@@ -30,7 +30,7 @@ $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
 
-$script:ModuleRoot = Join-Path $PSScriptRoot $SrcPath
+$script:ModuleRoot = $PSScriptRoot
 
 <#
 .DESCRIPTION
@@ -39,10 +39,11 @@ Implement build and packaging of the package and place the output $OutDirectory/
 function DoBuild
 {
     Write-Verbose -Verbose "Starting DoBuild"
-    Get-ChildItem -Path $script:ModuleRoot -Filter "*.ps*1" |
+    Get-ChildItem -Path $script:SrcPath -Filter "*.ps*1" |
         ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
-    Copy-Item -Path (Join-Path $script:ModuleRoot 'yml') -Recurse $script:OutModule -Force
-    Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule
+    Copy-Item -Path (Join-Path $script:SrcPath 'yml') -Recurse $script:OutModule -Force -Verbose
+    Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule -Verbose
+    Copy-Item -Path (Join-Path $script:SrcPath 'WHAT_TO_DO_NEXT.md') -Destination $script:OutModule -Verbose
 
     Write-Verbose -Verbose "Ending DoBuild"
 }
@@ -74,4 +75,8 @@ if ($Build.IsPresent)
 
 if ( $Test.IsPresent ) {
     Invoke-PSPackageProjectTest -Type $TestType
+}
+
+if ($UpdateHelp.IsPresent) {
+    Add-PSPackageProjectCmdletHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName -Culture $config.Culture
 }
