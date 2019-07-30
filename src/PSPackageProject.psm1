@@ -145,7 +145,7 @@ function Initialize-CIYml {
     Copy-Item $boilerplateReleaseYml -Destination (Join-Path $destYmlPath -ChildPath 'release.yml') -Force
 }
 
-function Test-PSPesterResults
+function Test-PSPesterResult
 {
     [CmdletBinding()]
     param(
@@ -217,12 +217,12 @@ function Invoke-StaticValidation {
 
     Write-Verbose -Verbose -Message "PSSA result file: $resultPSSA"
 
-    Test-PSPesterResults -TestResultsFile $resultPSSA
+    Test-PSPesterResult -TestResultsFile $resultPSSA
 
     Write-Verbose -Message "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
 
-    Test-PSPesterResults -TestResultsFile $resultBinSkim
+    Test-PSPesterResult -TestResultsFile $resultBinSkim
 }
 
 function RunScriptAnalysis {
@@ -341,7 +341,7 @@ function Invoke-PSPackageProjectTest {
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation
-            Test-PSPesterResults -TestResultsFile $resultFile
+            Test-PSPesterResult -TestResultsFile $resultFile
             $powershellName = GetPowerShellName
             Publish-AzDevOpsTestResult -Path $resultFile -Title "Functional Tests -  $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
