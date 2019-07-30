@@ -33,6 +33,7 @@ $script:TestPath = $config.TestPath
 
 $script:ModuleRoot = $PSScriptRoot
 $script:Culture = $config.Culture
+$script:HelpPath = $config.HelpPath
 
 <#
 .DESCRIPTION
@@ -51,7 +52,7 @@ function DoBuild
 
     # copy help
     Write-Verbose -Verbose -Message "Copying help files to '${OutDirectory}/${ModuleName}'"
-    copy-item -Recurse "${SrcPath}/help/${Culture}" "${OutDirectory}/${ModuleName}"
+    copy-item -Recurse "${HelpPath}/${Culture}" "${OutDirectory}/${ModuleName}"
 
     if ( Test-Path "${SrcPath}/code" ) {
         Write-Verbose -Verbose -Message "Building assembly and copying to '${OutDirectory}/${ModuleName}'"
