@@ -265,6 +265,9 @@ function ConvertPssaDiagnosticsToNUnit {
         $message = $d.Message -replace "'", "``"
         $null = $sb.Append("It '$ruleName' { `nthrow '$message' }`n")
     }
+    if ( $Diagnostic -eq $null ) {
+        $null = $sb.Append('It "no failures found" { $true | Should -Be $true }')
+    }
     $null = $sb.Append('}')
 
     $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "pssa.tests.ps1"
