@@ -27,7 +27,7 @@ Author = 'Microsoft Corporation'
 CompanyName = 'Microsoft Corporation'
 
 # Copyright statement for this module
-Copyright = '© Microsoft Corporation. All rights reserved'
+Copyright = '(c) Microsoft Corporation. All rights reserved'
 
 # Description of the functionality provided by this module
 Description = 'Module to help with building and publishing PowerShell packages'

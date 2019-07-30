@@ -103,7 +103,7 @@ function GetHelpPath {
 
     $cultureName = $Culture.Name
 
-    return (Join-Path2 $ProjectRoot $config.HelpPath $cultureName)
+    return (Join-Path2 -Path $ProjectRoot -ChildPath $config.HelpPath -AdditionalChildPath $cultureName)
 }
 
 function GetOutputModulePath {
@@ -142,10 +142,10 @@ function Initialize-CIYml {
     Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'test.yml') -Force
 
     $boilerplateReleaseYml = Join-Path2 -Path $PSScriptRoot -ChildPath 'yml' -AdditionalChildPath 'release_for_init.yml'
-    Copy-Item $boilerplateTestYml -Destination (Join-Path $destYmlPath -ChildPath 'release.yml') -Force
+    Copy-Item $boilerplateReleaseYml -Destination (Join-Path $destYmlPath -ChildPath 'release.yml') -Force
 }
 
-function Test-PSPesterResults
+function Test-PSPesterResult
 {
     [CmdletBinding()]
     param(
@@ -199,7 +199,7 @@ function Invoke-FunctionalValidation {
         $testPath = $config.TestPath
         $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
         $command = "import-module ${modStage} -Force -Verbose; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
-        $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose $_ }
+        $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose -Message $_ }
         return (Join-Path ${testPath} "$testResultFile")
     }
     catch {
@@ -209,21 +209,20 @@ function Invoke-FunctionalValidation {
 }
 
 function Invoke-StaticValidation {
-    $fault = $false
 
     $config = Get-PSPackageProjectConfiguration
 
-    Write-Verbose "Running ScriptAnalyzer" -Verbose
+    Write-Verbose -Message "Running ScriptAnalyzer" -Verbose
     $resultPSSA = RunScriptAnalysis -Location $config.BuildOutputPath
 
-    Write-Verbose -Verbose "PSSA result file: $resultPSSA"
+    Write-Verbose -Verbose -Message "PSSA result file: $resultPSSA"
 
-    Test-PSPesterResults -TestResultsFile $resultPSSA
+    Test-PSPesterResult -TestResultsFile $resultPSSA
 
-    Write-Verbose "Running BinSkim" -Verbose
+    Write-Verbose -Message "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
 
-    Test-PSPesterResults -TestResultsFile $resultBinSkim
+    Test-PSPesterResult -TestResultsFile $resultBinSkim
 }
 
 function RunScriptAnalysis {
@@ -262,11 +261,12 @@ function ConvertPssaDiagnosticsToNUnit {
     $sb = [System.Text.StringBuilder]::new()
     $null = $sb.Append("Describe 'PSScriptAnalyzer Diagnostics' { `n")
     foreach ($d in $Diagnostic) {
-        $severity = $d.Severity
         $ruleName = $d.RuleName
         $message = $d.Message -replace "'", "``"
-        $description = "[$severity] ${ruleName}: $message"
         $null = $sb.Append("It '$ruleName' { `nthrow '$message' }`n")
+    }
+    if ($null -eq $Diagnostic) {
+        $null = $sb.Append('It "no failures found" { $true | Should -Be $true }')
     }
     $null = $sb.Append('}')
 
@@ -338,11 +338,10 @@ function Invoke-PSPackageProjectTest {
     )
 
     END {
-        $config = Get-PSPackageProjectConfiguration
         if ($Type -contains "Functional" ) {
             # this will return a path to the results
             $resultFile = Invoke-FunctionalValidation
-            Test-PSPesterResults -TestResultsFile $resultFile
+            Test-PSPesterResult -TestResultsFile $resultFile
             $powershellName = GetPowerShellName
             Publish-AzDevOpsTestResult -Path $resultFile -Title "Functional Tests -  $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
@@ -401,8 +400,9 @@ Describe "BinSkim" {
     $eligbleFiles = @(Get-ChildItem -Path $Location -Filter $Filter -Recurse -File | Where-Object { $_.Extension -in '.exe','.dll','','.so','.dylib'})
     if($eligbleFiles.Count -ne 0)
     {
+        $rpkgs = "Register-PackageSource"
         $sourceName = 'Nuget'
-        Register-PackageSource -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
+        & $rpkgs -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
         $packageName = 'microsoft.codeanalysis.binskim'
         $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
         if ($IsLinux) {
@@ -423,13 +423,15 @@ Describe "BinSkim" {
             return
         }
 
-        Write-Verbose "Finding binskim..." -Verbose
-        $packageInfo = Find-Package -Name $packageName -Source $sourceName
+        Write-Verbose -Message "Finding binskim..." -Verbose
+        $fpkg = "Find-Package"
+        $packageInfo = & $fpkg -Name $packageName -Source $sourceName
         $dirName = $packageInfo.Name + '.' + $packageInfo.Version
         $toolLocation = Join-Path2 -Path $packageLocation -ChildPath $dirName -AdditionalChildPath 'tools', 'netcoreapp2.0', $rid, $binaryName
         if (!(test-path -path $toolLocation)) {
-            Write-Verbose "Installing binskim..." -Verbose
-            $packageInfo | Install-Package -Destination $packageLocation -Force
+            Write-Verbose -Message "Installing binskim..." -Verbose
+            $ipkg = "Install-Package"
+            $packageInfo | & $ipkg -Destination $packageLocation -Force
         }
 
         if ($IsLinux) {
@@ -440,9 +442,9 @@ Describe "BinSkim" {
         $toAnalyze = Join-Path2 -Path $resolvedPath -ChildPath $Filter
 
         $outputPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-results.json'
-        Write-Verbose "Running binskim..." -Verbose
+        Write-Verbose -Message "Running binskim..." -Verbose
         & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print --recurse  > binskim.log 2>&1
-        Write-Verbose "binskim exitcode: $LASTEXITCODE" -Verbose
+        Write-Verbose -Message "binskim exitcode: $LASTEXITCODE" -Verbose
         $PowerShellName = GetPowerShellName
         Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
 
@@ -452,7 +454,7 @@ Describe "BinSkim" {
 
         $testscript | Out-File $testsPath -Force
 
-        Write-Verbose "Generating test results..." -Verbose
+        Write-Verbose -Message "Generating test results..." -Verbose
 
         Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
 
@@ -462,6 +464,7 @@ Describe "BinSkim" {
 }
 
 function Publish-AzDevOpsTestResult {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     param(
         [parameter(Mandatory)]
         [string]
@@ -475,7 +478,7 @@ function Publish-AzDevOpsTestResult {
 
     $artifactPath = (Resolve-Path $Path).ProviderPath
 
-    Write-Verbose -Verbose "Uploading $artifactPath"
+    Write-Verbose -Verbose -Message "Uploading $artifactPath"
 
     # Just do nothing if we are not in AzDevOps
     if ($env:TF_BUILD) {
@@ -586,17 +589,19 @@ function Invoke-PSPackageProjectBuild {
         $BuildScript
     )
 
-    Write-Verbose -Verbose "Invoking build script"
+    Write-Verbose -Verbose -Message "Invoking build script"
 
     $BuildScript.Invoke()
 
     New-PSPackageProjectPackage
 
-    Write-Verbose -Verbose "Finished invoking build script"
+    Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
 function New-PSPackageProjectPackage
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
+    param ()
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
     $ErrorActionPreference = 'Stop'
     $config = Get-PSPackageProjectConfiguration
@@ -610,7 +615,6 @@ function New-PSPackageProjectPackage
     }
 
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
-    $scriptsLocation = $modulesLocation
 
     Write-Verbose -Message "Starting dependency download" -Verbose
 
@@ -623,7 +627,7 @@ function New-PSPackageProjectPackage
         Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
     }
 
-    Write-Verbose -Verbose "Starting to publish module: $modulePath"
+    Write-Verbose -Verbose -Message "Starting to publish module: $modulePath"
     Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
 
     Write-Verbose -Message "Local package published" -Verbose
@@ -637,6 +641,7 @@ function New-PSPackageProjectPackage
 # Wrapper to push artifact
 function Publish-Artifact
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     param(
         [Parameter(Mandatory)]
         [ValidateScript({Test-Path -Path $_})]
@@ -673,10 +678,11 @@ function Save-Package2
         $RequiredVersion
     )
 
+    $spkg = "Save-Package"
     if($RequiredVersion) {
-        Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet -RequiredVersion $RequiredVersion
+        & $spkg -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet -RequiredVersion $RequiredVersion
     } else {
-        Save-Package -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
+        & $spkg -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
     }
 
 }
@@ -703,10 +709,6 @@ function Initialize-PSPackageProject {
         $ModuleRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ModuleBase)
     }
     $null = New-Item -ItemType Directory -Path $ModuleRoot
-    $ModuleInfo = @{
-        ModuleName = $ModuleName
-        ModuleRoot = $ModuleRoot
-    }
 
     # make pspackageproject.json
     $jsonPrj =
@@ -747,7 +749,7 @@ function Initialize-PSPackageProject {
         $output = dotnet new classlib -f netstandard2.0 --no-restore --force
         $output += dotnet add package PowerShellStandard.Library --no-restore
         Move-Item code.csproj "${ModuleName}.csproj"
-        @"
+        $str = @"
 using System;
 using System.Management.Automation;
 
@@ -765,7 +767,8 @@ namespace ${ModuleName}
         }
     }
 }
-"@ > Class1.cs
+"@
+    $str | Out-File Class1.cs
     }
     finally {
         Pop-Location
