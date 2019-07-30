@@ -236,14 +236,12 @@ function RunScriptAnalysis {
         }
 
         $results = Invoke-ScriptAnalyzer @pssaParams
-        if ( $results ) {
-            $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
-            # send back the xml file path.
-            $xmlPath
-            if ($env:TF_BUILD) {
-                $powershellName = GetPowerShellName
-                Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
-            }
+        $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
+        # send back the xml file path.
+        $xmlPath
+        if ($env:TF_BUILD) {
+            $powershellName = GetPowerShellName
+            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
     }
     finally {
