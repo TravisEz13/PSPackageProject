@@ -99,7 +99,7 @@ function GetHelpPath {
 
     $ProjectRoot = Resolve-Path -Path $ProjectRoot
 
-    $config = Get-PSPackageProjectConfiguration
+    $config = Get-PSPackageProjectConfiguration -ConfigPath $ProjectRoot
 
     $cultureName = $Culture.Name
 
@@ -708,6 +708,25 @@ function Initialize-PSPackageProject {
         ModuleRoot = $ModuleRoot
     }
 
+    # make pspackageproject.json
+    $jsonPrj =
+    @{
+        SourcePath = "src"
+        ModuleName = "${ModuleName}"
+        TestPath = 'test'
+        HelpPath = 'help'
+        BuildOutputPath = 'out'
+        Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
+    } | ConvertTo-Json
+
+    if ($PSEdition -eq 'Core') {
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
+    }
+    else {
+        Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
+    }
+
     # Create the help directory
     # and populate a couple of files
     Initialize-PSPackageProjectHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName
@@ -779,25 +798,6 @@ Describe "Test ${moduleName}" -tags CI {
     # make build.ps1
     $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
     Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
-
-    # make pspackageproject.json
-    $jsonPrj =
-    @{
-        SourcePath = "src"
-        ModuleName = "${ModuleName}"
-        TestPath = 'test'
-        HelpPath = 'help'
-        BuildOutputPath = 'out'
-        Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
-    } | ConvertTo-Json
-
-    if ($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
-        Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
-        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
-    }
-    else {
-        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
-    }
 }
 
 function Get-PSPackageProjectConfiguration {
