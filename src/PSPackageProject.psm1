@@ -707,6 +707,8 @@ function Initialize-PSPackageProject {
         [Parameter(Mandatory = $true, Position = 0)]
         [string]$ModuleName,
         [string]$ModuleBase = ".",
+        [string]$Description = "Module description",
+        [string]$LicenseUrl = "https://opensource.org/licenses/MIT",
         [switch]$Force
     )
 
@@ -751,7 +753,7 @@ function Initialize-PSPackageProject {
     $moduleSourceBase = Join-Path $ModuleRoot "src"
     $null = New-Item -ItemType Directory -Path $moduleSourceBase
     $moduleFileWithoutExtension = Join-Path $moduleSourceBase ${ModuleName}
-    New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1" -CmdletsToExport "verb-noun" -RootModule "./${ModuleName}.dll"
+    New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1" -CmdletsToExport "verb-noun" -RootModule "./${ModuleName}.dll" -Description $Description -LicenseUri $LicenseUrl -RequireLicenseAcceptance:$false
     $null = New-Item -Type File "${moduleFileWithoutExtension}.psm1"
 
     # Create a directory for cs sources and create a classlib csproj file with
