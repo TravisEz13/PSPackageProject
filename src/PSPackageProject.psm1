@@ -719,12 +719,12 @@ function Initialize-PSPackageProject {
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 
-    if ($(${PSVersionTable}.PSEdition) -eq 'Desktop') {
-        Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
-        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
+    if ($PSEdition -eq 'Core') {
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
     }
     else {
-        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding utf8NoBOM
+        Write-Warning -Message "UTF-8 characters for module name are not supported in Windows PowerShell."
+        $jsonPrj | Out-File (Join-Path ${moduleRoot} "pspackageproject.json") -Encoding ascii
     }
 
     # Create the help directory

@@ -11,8 +11,7 @@ The command will generate a scaffolding for the PowerShell module called `MyTest
 The following project structure is generated:
 
 ```PowerShell
-PS D:\> dir D:\temp\MyTestMod\
-
+PS D:\> Get-ChilItem D:\temp\MyTestMod\
 
     Directory: D:\temp\MyTestMod
 
@@ -116,20 +115,31 @@ When the function is executed, the expectation is that the `BuildOutputPath` as 
 ## Enable CI in Azure DevOps
 
 For maintaining quality of the module, it is highly recommended that a CI system should be used.
-We recommend using Azure DevOps, and hence assist onboarding by creating YAML files for the same.
+We provide YAML files which are ready for use by AzureDevOps to accelerate the automated build, test, and release phases.
 
 The `.ci/ci.yml` file defines the YAML for building the module and testing it on `Windows`, `Linux` and `macOS`.
 This can be further customized according to your needs.
 
 The `.ci/release.yml` file defines the YAML for the release pipeline, which can be used to publish the module to [PowerShell Gallery](https://www.powershellgallery.com).
 
+### Quick start steps for Azure DevOps CI
+
+1. Go to https://dev.azure.com
+1. Create account or Sign in
+1. Create a Project
+1. Click on Pipelines
+1. Create a new Pipeline
+1. Choose where your code is, GitHub etc.
+1. Select Repository
+1. Click on 'Existing Azure Pipelines YAML file'
+1. Provide the branch name and path to the YAML file (`./ci/ci.yml`)
+1. Click `Run` to schedule your first CI run.
+1. Create a variable called `NuGetAPIKey` to save API key for publishing to gallery.
+
+The above build is configured for running build and test for all PRs and merges to the `master` branch.
+To release the module to PowerShell Gallery, schedule the pipeline manually and set the `Publish` variable to `Yes`
+
 For more information about getting started with configuring an Azure DevOps build pipeline refer the following links:
 
 https://docs.microsoft.com/en-us/azure/devops/pipelines/create-first-pipeline?view=azure-devops&tabs=tfs-2018-2
 https://docs.microsoft.com/en-us/azure/devops/pipelines/customize-pipeline?view=azure-devops
-
-When, you have your Azure DevOps project setup, create a new pipeline and use the `ci.yml` file.
-This will setup the build pipeline for PRs and merges.
-
-To setup the release pipeline, create a new release pipeline and use the `release.yml` file.
-Remember to define a pipeline variable called `NuGetApiKey` with the value of the API key to publish module to the gallery.
