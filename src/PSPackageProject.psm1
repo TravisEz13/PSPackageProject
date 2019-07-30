@@ -265,7 +265,7 @@ function ConvertPssaDiagnosticsToNUnit {
         $message = $d.Message -replace "'", "``"
         $null = $sb.Append("It '$ruleName' { `nthrow '$message' }`n")
     }
-    if ( $Diagnostic -eq $null ) {
+    if ($null -eq $Diagnostic) {
         $null = $sb.Append('It "no failures found" { $true | Should -Be $true }')
     }
     $null = $sb.Append('}')
