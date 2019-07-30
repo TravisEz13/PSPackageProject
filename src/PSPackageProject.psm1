@@ -236,14 +236,12 @@ function RunScriptAnalysis {
         }
 
         $results = Invoke-ScriptAnalyzer @pssaParams
-        if ( $results ) {
-            $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
-            # send back the xml file path.
-            $xmlPath
-            if ($env:TF_BUILD) {
-                $powershellName = GetPowerShellName
-                Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
-            }
+        $xmlPath = ConvertPssaDiagnosticsToNUnit -Diagnostic $results
+        # send back the xml file path.
+        $xmlPath
+        if ($env:TF_BUILD) {
+            $powershellName = GetPowerShellName
+            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
         }
     }
     finally {
@@ -456,11 +454,27 @@ Describe "BinSkim" {
 
         Write-Verbose -Message "Generating test results..." -Verbose
 
-        Invoke-Pester -Script $testsPath -OutputFile ./binskim-results.xml -OutputFormat NUnitXml
+        $xmlPath = "$PWD/binskim-results.xml"
+        Invoke-Pester -Script $testsPath -OutputFile $xmlPath -OutputFormat NUnitXml
 
-        Publish-AzDevOpsTestResult -Path ./binskim-results.xml -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
-        return ./binskim-results.xml
     }
+    else {
+        $test = 'Describe "BinSkim Diagnostics" { It "no failures found" { $true | Should -Be $true } }'
+
+        $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "binskim.tests.ps1"
+        $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "binskim-results.xml"
+
+        try {
+            Set-Content -Path $testPath -Value $test
+            Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+        }
+        finally {
+            Remove-Item -Path $testPath -Force
+        }
+
+    }
+    Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    return $xmlPath
 }
 
 function Publish-AzDevOpsTestResult {
