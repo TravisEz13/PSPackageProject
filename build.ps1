@@ -38,14 +38,14 @@ Implement build and packaging of the package and place the output $OutDirectory/
 #>
 function DoBuild
 {
-    Write-Verbose -Verbose "Starting DoBuild"
+    Write-Verbose -Verbose -Message "Starting DoBuild"
     Get-ChildItem -Path $script:SrcPath -Filter "*.ps*1" |
         ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
     Copy-Item -Path (Join-Path $script:SrcPath 'yml') -Recurse $script:OutModule -Force -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'WHAT_TO_DO_NEXT.md') -Destination $script:OutModule -Verbose
 
-    Write-Verbose -Verbose "Ending DoBuild"
+    Write-Verbose -Verbose -Message "Ending DoBuild"
 }
 
 #region Special casing for PSPackageProject CI system

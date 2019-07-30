@@ -40,9 +40,9 @@ Implement build and packaging of the package and place the output $OutDirectory/
 #>
 function DoBuild
 {
-    Write-Verbose -Verbose "Starting DoBuild"
+    Write-Verbose -Verbose -Message "Starting DoBuild"
 
-    Write-Verbose -Verbose "Copying module files to '${OutDirectory}/${ModuleName}'"
+    Write-Verbose -Verbose -Message "Copying module files to '${OutDirectory}/${ModuleName}'"
     # copy psm1 and psd1 files
     copy-item "${SrcPath}/${ModuleName}.psd1" "${OutDirectory}/${ModuleName}"
     copy-item "${SrcPath}/${ModuleName}.psm1" "${OutDirectory}/${ModuleName}"
@@ -50,11 +50,11 @@ function DoBuild
     #
 
     # copy help
-    Write-Verbose -Verbose "Copying help files to '${OutDirectory}/${ModuleName}'"
+    Write-Verbose -Verbose -Message "Copying help files to '${OutDirectory}/${ModuleName}'"
     copy-item -Recurse "${SrcPath}/help/${Culture}" "${OutDirectory}/${ModuleName}"
 
     if ( Test-Path "${SrcPath}/code" ) {
-        Write-Verbose -Verbose "Building assembly and copying to '${OutDirectory}/${ModuleName}'"
+        Write-Verbose -Verbose -Message "Building assembly and copying to '${OutDirectory}/${ModuleName}'"
         # build code and place it in the staging location
         try {
             Push-Location "${SrcPath}/code"
@@ -70,11 +70,11 @@ function DoBuild
         }
     }
     else {
-        Write-Verbose -Verbose "No code to build in '${SrcPath}/code'"
+        Write-Verbose -Verbose -Message "No code to build in '${SrcPath}/code'"
     }
 
     ## Add build and packaging here
-    Write-Verbose -Verbose "Ending DoBuild"
+    Write-Verbose -Verbose -Message "Ending DoBuild"
 }
 
 if ( ! ( Get-Module -ErrorAction SilentlyContinue PSPackageProject) ) {
