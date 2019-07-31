@@ -745,7 +745,7 @@ function Initialize-PSPackageProject {
     if ( ! $ModuleRoot ) {
         $ModuleRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ModuleBase)
     }
-    $null = New-Item -ItemType Directory -Path $ModuleRoot
+    $null = New-Item -ItemType Directory -Path $ModuleRoot -Force:$force
 
     # make pspackageproject.json
     $jsonPrj =
