@@ -675,7 +675,6 @@ function Publish-Artifact
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     param(
         [Parameter(Mandatory)]
-        [ValidateScript({Test-Path -Path $_})]
         $Path,
         [string]
         $Name
