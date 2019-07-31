@@ -406,7 +406,7 @@ Describe "BinSkim" {
         $PowerShellName = GetPowerShellName
         $rpkgs = "Register-PackageSource"
         $sourceName = 'Nuget'
-        & $rpkgs -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
+        $null = & $rpkgs -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
         $packageName = 'microsoft.codeanalysis.binskim'
         $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject-packages'
         if ($IsLinux) {
@@ -425,7 +425,7 @@ Describe "BinSkim" {
         else {
             Write-Warning "unsupported platform"
             $xmlPath = Get-EmptyBinSkimResult
-            Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+            $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
             return $xmlPath
         }
 
@@ -437,11 +437,11 @@ Describe "BinSkim" {
         if (!(test-path -path $toolLocation)) {
             Write-Verbose -Message "Installing binskim..." -Verbose
             $ipkg = "Install-Package"
-            $packageInfo | & $ipkg -Destination $packageLocation -Force
+            $null = $packageInfo | & $ipkg -Destination $packageLocation -Force
         }
 
         if ($IsLinux) {
-            chmod a+x $toolLocation
+            $null = chmod a+x $toolLocation
         }
 
         $resolvedPath = (Resolve-Path -Path $Location).ProviderPath
@@ -452,9 +452,9 @@ Describe "BinSkim" {
         & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print --recurse  > binskim.log 2>&1
         Write-Verbose -Message "binskim exitcode: $LASTEXITCODE" -Verbose
 
-        Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
+        $null = Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
 
-        Publish-Artifact -Path $outputPath -Name "binskim-result-${env:AGENT_OS}-${PowerShellName}"
+        $null = Publish-Artifact -Path $outputPath -Name "binskim-result-${env:AGENT_OS}-${PowerShellName}"
 
         $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
@@ -465,14 +465,14 @@ Describe "BinSkim" {
         Write-Verbose -Message "Generating test results..." -Verbose
 
         $xmlPath = "$PWD/binskim-results.xml"
-        Invoke-Pester -Script $testsPath -OutputFile $xmlPath -OutputFormat NUnitXml
+        $null = Invoke-Pester -Script $testsPath -OutputFile $xmlPath -OutputFormat NUnitXml
 
     }
     else {
         $xmlPath = Get-EmptyBinSkimResult
     }
 
-    Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
     return $xmlPath
 }
 
@@ -485,10 +485,10 @@ function Get-EmptyBinSkimResult
 
     try {
         Set-Content -Path $testPath -Value $test
-        Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+        $null = Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
     }
     finally {
-        Remove-Item -Path $testPath -Force
+        $null = Remove-Item -Path $testPath -Force
     }
 
     $xmlPath
