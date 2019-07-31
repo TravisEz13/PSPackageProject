@@ -371,6 +371,11 @@ Describe "BinSkim" {
         }
     }
 
+    if (-not $results.runs.files.PsObject.Properties.Name)
+    {
+        It "no failures found" { $true | Should -Be $true }
+    }
+
     foreach($file in $results.runs.files.PsObject.Properties.Name)
     {
         foreach($rule in $results.runs.rules.psobject.properties.name)
@@ -398,6 +403,7 @@ Describe "BinSkim" {
     $eligbleFiles = @(Get-ChildItem -Path $Location -Filter $Filter -Recurse -File | Where-Object { $_.Extension -in '.exe','.dll','','.so','.dylib'})
     if($eligbleFiles.Count -ne 0)
     {
+        $PowerShellName = GetPowerShellName
         $rpkgs = "Register-PackageSource"
         $sourceName = 'Nuget'
         & $rpkgs -ProviderName NuGet -Name $sourceName -Location https://api.nuget.org/v3/index.json -erroraction ignore
@@ -418,7 +424,9 @@ Describe "BinSkim" {
         }
         else {
             Write-Warning "unsupported platform"
-            return
+            $xmlPath = Get-EmptyBinSkimResult
+            Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+            return $xmlPath
         }
 
         Write-Verbose -Message "Finding binskim..." -Verbose
@@ -443,8 +451,10 @@ Describe "BinSkim" {
         Write-Verbose -Message "Running binskim..." -Verbose
         & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print --recurse  > binskim.log 2>&1
         Write-Verbose -Message "binskim exitcode: $LASTEXITCODE" -Verbose
-        $PowerShellName = GetPowerShellName
+
         Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
+
+        Publish-Artifact -Path $outputPath -Name "binskim-result-${env:AGENT_OS}-${PowerShellName}"
 
         $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
@@ -459,22 +469,29 @@ Describe "BinSkim" {
 
     }
     else {
-        $test = 'Describe "BinSkim Diagnostics" { It "no failures found" { $true | Should -Be $true } }'
-
-        $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "binskim.tests.ps1"
-        $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "binskim-results.xml"
-
-        try {
-            Set-Content -Path $testPath -Value $test
-            Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
-        }
-        finally {
-            Remove-Item -Path $testPath -Force
-        }
-
+        $xmlPath = Get-EmptyBinSkimResult
     }
+
     Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
     return $xmlPath
+}
+
+function Get-EmptyBinSkimResult
+{
+    $test = 'Describe "BinSkim Diagnostics" { It "no failures found" { $true | Should -Be $true } }'
+
+    $testPath = Join-Path ([System.IO.Path]::GetTempPath()) "binskim.tests.ps1"
+    $xmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "binskim-results.xml"
+
+    try {
+        Set-Content -Path $testPath -Value $test
+        Invoke-Pester -Script $testPath -OutputFormat NUnitXml -OutputFile $xmlPath
+    }
+    finally {
+        Remove-Item -Path $testPath -Force
+    }
+
+    $xmlPath
 }
 
 function Publish-AzDevOpsTestResult {
@@ -663,6 +680,11 @@ function Publish-Artifact
         [string]
         $Name
     )
+
+    if (-not (Test-Path $Path)) {
+        Write-Warning "Path: $Path does not exist"
+        return
+    }
 
     $resolvedPath = (Resolve-Path -Path $Path).ProviderPath
 
