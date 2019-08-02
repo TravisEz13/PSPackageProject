@@ -260,8 +260,10 @@ function ConvertPssaDiagnosticsToNUnit {
     $null = $sb.Append("Describe 'PSScriptAnalyzer Diagnostics' { `n")
     foreach ($d in $Diagnostic) {
         $ruleName = $d.RuleName
+        $scriptName = $d.ScriptName -replace "'", "``"
+        $line = $d.line
         $message = $d.Message -replace "'", "``"
-        $null = $sb.Append("It '$ruleName' { `nthrow '$message' }`n")
+        $null = $sb.Append("It '$scriptName - $line - $ruleName' { `nthrow '$message' }`n")
     }
     if ($null -eq $Diagnostic) {
         $null = $sb.Append('It "no failures found" { $true | Should -Be $true }')
