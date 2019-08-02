@@ -195,6 +195,7 @@ function Invoke-FunctionalValidation {
     param ( $tags = "CI" )
     $config = Get-PSPackageProjectConfiguration
     try {
+        $unused = 'betterfail'
         $testResultFile = "result.pester.xml"
         $testPath = $config.TestPath
         $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
