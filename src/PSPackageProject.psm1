@@ -798,7 +798,7 @@ function Initialize-PSPackageProject {
 using System;
 using System.Management.Automation;
 
-namespace ${ModuleName}
+namespace $(${ModuleName} -replace '-','.')
 {
     [Cmdlet("verb","noun")]
     public class Cmdlet1 : PSCmdlet
