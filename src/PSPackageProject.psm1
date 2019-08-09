@@ -427,7 +427,7 @@ Describe "BinSkim" {
         else {
             Write-Warning "unsupported platform"
             $xmlPath = Get-EmptyBinSkimResult
-            $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+            $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit -FailTaskOnFailedTests $false
             return $xmlPath
         }
 
@@ -474,7 +474,7 @@ Describe "BinSkim" {
         $xmlPath = Get-EmptyBinSkimResult
     }
 
-    $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit -FailTaskOnFailedTests $false
     return $xmlPath
 }
 
@@ -506,7 +506,9 @@ function Publish-AzDevOpsTestResult {
         [string]
         $Title,
         [string]
-        $Type = 'NUnit'
+        $Type = 'NUnit',
+        [bool]
+        $FailTaskOnFailedTests = $true
     )
 
     $artifactPath = (Resolve-Path $Path).ProviderPath
@@ -515,7 +517,7 @@ function Publish-AzDevOpsTestResult {
 
     # Just do nothing if we are not in AzDevOps
     if ($env:TF_BUILD) {
-        Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
+        Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=$($FailTaskOnFailedTests.ToString().ToLowerInvariant());]"
     }
 }
 
