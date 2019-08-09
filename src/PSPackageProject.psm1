@@ -518,7 +518,9 @@ function Publish-AzDevOpsTestResult {
 
     # Just do nothing if we are not in AzDevOps
     if ($env:TF_BUILD) {
-        Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=$($FailTaskOnFailedTests.ToString().ToLowerInvariant());]"
+        $message = "vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=$($FailTaskOnFailedTests.ToString().ToLowerInvariant());]"
+        Write-Verbose -Message "sending AzDevOps: $message" -Verbose
+        Write-Host "##$message"
     }
 }
 
