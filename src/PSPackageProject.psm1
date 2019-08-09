@@ -185,6 +185,7 @@ function Show-PSPesterError {
     $name = $testFailure.name
     $message = $testFailure.failure.message
     $stackTrace = $testFailure.failure."stack-trace"
+    $unused = 'removeme'
 
     $fullMsg = "`n{0}`n{1}`n{2}`n{3}`{4}" -f ("Description: " + $description), ("Name:        " + $name), "message:", $message, "stack-trace:", $stackTrace
 
