@@ -42,11 +42,14 @@ jobs:
       Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1
       Invoke-PSPackageProjectTest -Type Functional
     displayName: Execute functional tests
+    errorActionPreference: continue
 
   - ${{ parameters.powershellExecutable }}: |
       Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
+    errorActionPreference: continue
+    condition: succeededOrFailed()
 
   - ${{ parameters.powershellExecutable }}: |
       Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
