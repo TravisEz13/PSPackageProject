@@ -217,12 +217,11 @@ function Invoke-StaticValidation {
 
     Write-Verbose -Verbose -Message "PSSA result file: $resultPSSA"
 
-    Test-PSPesterResult -TestResultsFile $resultPSSA
-
     Write-Verbose -Message "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
 
-    Test-PSPesterResult -TestResultsFile $resultBinSkim
+    Test-PSPesterResult -TestResultsFile $resultPSSA -ErrorAction Stop
+    Test-PSPesterResult -TestResultsFile $resultBinSkim -ErrorAction Stop
 }
 
 function RunScriptAnalysis {
@@ -241,7 +240,7 @@ function RunScriptAnalysis {
         $xmlPath
         if ($env:TF_BUILD) {
             $powershellName = GetPowerShellName
-            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
+            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit -FailTaskOnFailedTests $false
         }
     }
     finally {
@@ -427,7 +426,7 @@ Describe "BinSkim" {
         else {
             Write-Warning "unsupported platform"
             $xmlPath = Get-EmptyBinSkimResult
-            $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+            $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit -FailTaskOnFailedTests $false
             return $xmlPath
         }
 
@@ -474,7 +473,7 @@ Describe "BinSkim" {
         $xmlPath = Get-EmptyBinSkimResult
     }
 
-    $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit
+    $null = Publish-AzDevOpsTestResult -Path $xmlPath -Title "BinSkim $env:AGENT_OS - $PowerShellName Results" -Type NUnit -FailTaskOnFailedTests $false
     return $xmlPath
 }
 
@@ -506,7 +505,9 @@ function Publish-AzDevOpsTestResult {
         [string]
         $Title,
         [string]
-        $Type = 'NUnit'
+        $Type = 'NUnit',
+        [bool]
+        $FailTaskOnFailedTests = $true
     )
 
     $artifactPath = (Resolve-Path $Path).ProviderPath
@@ -515,7 +516,9 @@ function Publish-AzDevOpsTestResult {
 
     # Just do nothing if we are not in AzDevOps
     if ($env:TF_BUILD) {
-        Write-Host "##vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=true;]"
+        $message = "vso[results.publish type=$Type;mergeResults=true;runTitle=$Title;publishRunAttachments=true;resultFiles=$artifactPath;failTaskOnFailedTests=$($FailTaskOnFailedTests.ToString().ToLowerInvariant());]"
+        Write-Verbose -Message "sending AzDevOps: $message" -Verbose
+        Write-Host "##$message"
     }
 }
 
@@ -626,17 +629,17 @@ function Invoke-PSPackageProjectBuild {
 
     $BuildScript.Invoke()
 
-    New-PSPackageProjectPackage
+    New-PSPackageProjectPackage -ErrorAction Stop
 
     Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
 function New-PSPackageProjectPackage
 {
+    [CmdletBinding()]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
     param ()
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
-    $ErrorActionPreference = 'Stop'
     $config = Get-PSPackageProjectConfiguration
     $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
     $sourceName = 'pspackageproject-local-repo'
@@ -650,10 +653,18 @@ function New-PSPackageProjectPackage
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
 
     Write-Verbose -Message "Starting dependency download" -Verbose
+    $module = Get-Module -Name $modulePath -ListAvailable -ErrorAction Stop
 
-    # TODO : dynamically detect module dependecies and save them
-    Save-Package2 -Name PlatyPs, Pester -Location $modulesLocation
-    Save-Package2 -Name PSScriptAnalyzer -RequiredVersion '1.18.0' -Location $modulesLocation
+    foreach($requiredModule in $module.RequiredModules)
+    {
+        $saveParams = @{Name = $requiredModule.Name}
+        if($requiredModule.Version)
+        {
+            $saveParams.Add('RequiredVersion',$requiredModule.Version)
+        }
+
+        Save-Package2 @saveParams -Location $modulesLocation
+    }
 
     Write-Verbose -Message "Dependency download complete" -Verbose
     if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
