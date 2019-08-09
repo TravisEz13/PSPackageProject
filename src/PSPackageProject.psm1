@@ -218,12 +218,11 @@ function Invoke-StaticValidation {
 
     Write-Verbose -Verbose -Message "PSSA result file: $resultPSSA"
 
-    Test-PSPesterResult -TestResultsFile $resultPSSA
-
     Write-Verbose -Message "Running BinSkim" -Verbose
     $resultBinSkim = Invoke-BinSkim -Location (Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName)
 
-    Test-PSPesterResult -TestResultsFile $resultBinSkim
+    Test-PSPesterResult -TestResultsFile $resultPSSA -ErrorAction Stop
+    Test-PSPesterResult -TestResultsFile $resultBinSkim -ErrorAction Stop
 }
 
 function RunScriptAnalysis {
