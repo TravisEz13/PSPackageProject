@@ -653,7 +653,7 @@ function New-PSPackageProjectPackage
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
 
     Write-Verbose -Message "Starting dependency download" -Verbose
-    $module = Get-Module -Name $modulePath
+    $module = Get-Module -Name $modulePath -ListAvailable -ErrorAction Stop
 
     foreach($requiredModule in $module.RequiredModules)
     {
