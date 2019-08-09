@@ -650,10 +650,18 @@ function New-PSPackageProjectPackage
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
 
     Write-Verbose -Message "Starting dependency download" -Verbose
+    $module = Get-Module -Name $modulePath
 
-    # TODO : dynamically detect module dependecies and save them
-    Save-Package2 -Name PlatyPs, Pester -Location $modulesLocation
-    Save-Package2 -Name PSScriptAnalyzer -RequiredVersion '1.18.0' -Location $modulesLocation
+    foreach($requiredModule in $module.RequiredModules)
+    {
+        $saveParams = @{Name = $requiredModule.Name}
+        if($requiredModule.Version)
+        {
+            $saveParams.Add('RequiredVersion',$requiredModule.Version)
+        }
+
+        Save-Package2 @saveParams -Location $modulesLocation
+    }
 
     Write-Verbose -Message "Dependency download complete" -Verbose
     if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
