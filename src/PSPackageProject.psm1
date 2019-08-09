@@ -626,17 +626,17 @@ function Invoke-PSPackageProjectBuild {
 
     $BuildScript.Invoke()
 
-    New-PSPackageProjectPackage
+    New-PSPackageProjectPackage -ErrorAction Stop
 
     Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
 function New-PSPackageProjectPackage
 {
+    [CmdletBinding()]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
     param ()
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
-    $ErrorActionPreference = 'Stop'
     $config = Get-PSPackageProjectConfiguration
     $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
     $sourceName = 'pspackageproject-local-repo'
