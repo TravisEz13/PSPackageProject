@@ -242,7 +242,7 @@ function RunScriptAnalysis {
         $xmlPath
         if ($env:TF_BUILD) {
             $powershellName = GetPowerShellName
-            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit
+            Publish-AzDevOpsTestResult -Path $xmlPath -Title "PSScriptAnalyzer $env:AGENT_OS - $powershellName Results" -Type NUnit -FailTaskOnFailedTests $false
         }
     }
     finally {
