@@ -21,8 +21,4 @@ Describe "PSPackageProject tests" -Tag "CI" {
     It "Can find the ModuleName" {
         $config.ModuleName | Should -Be 'PSPackageProject'
     }
-
-    It 'fail' {
-        1 | Should -Be 2
-    }
 }
