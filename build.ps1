@@ -43,6 +43,7 @@ function DoBuild
         ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
     Copy-Item -Path (Join-Path $script:SrcPath 'yml') -Recurse $script:OutModule -Force -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule -Verbose
+    Copy-Item -Path (Join-Path $script:SrcPath 'gitignore_for_init') -Destination $script:OutModule -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'WHAT_TO_DO_NEXT.md') -Destination $script:OutModule -Verbose
 
     Write-Verbose -Verbose -Message "Ending DoBuild"
