@@ -10,6 +10,13 @@ param (
     [switch]
     $Build,
 
+    [Parameter(ParameterSetName="publish")]
+    [switch]
+    $Publish,
+    [Parameter(ParameterSetName="publish")]
+    [switch]
+    $Signed,
+
     [Parameter(ParameterSetName="build")]
     [switch]
     $Test,
@@ -99,7 +106,12 @@ else
 if ($Build.IsPresent)
 {
     $sb = (Get-Item Function:DoBuild).ScriptBlock
-    Invoke-PSPackageProjectBuild -BuildScript $sb
+    Invoke-PSPackageProjectBuild -BuildScript $sb -BuildOnly
+}
+
+if ($Publish.IsPresent)
+{
+    Invoke-PSPackageProjectPublish -Signed:$Signed.IsPresent
 }
 
 if ( $Test.IsPresent ) {

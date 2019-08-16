@@ -30,7 +30,13 @@ stages:
       displayName: Install PSPackageProject module
     - pwsh: |
         $(Build.SourcesDirectory)/build.ps1 -Build
-      displayName: Build and publish artifact
+      displayName: Build
+    - pwsh: |
+        Copy-Item $env:BUILD_SOURCESDIRECTORY/out $env:BUILD_SOURCESDIRECTORY/signed -Recurse -Force
+      displayName: Build Signing Placeholder
+    - pwsh: |
+        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+      displayName: Publish
 
 - stage: Test
   displayName: Test Package

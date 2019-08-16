@@ -622,26 +622,55 @@ function Invoke-PSPackageProjectBuild {
     param(
         [Parameter()]
         [ScriptBlock]
-        $BuildScript
+        $BuildScript,
+        [Switch]
+        $BuildOnly
     )
 
     Write-Verbose -Verbose -Message "Invoking build script"
 
     $BuildScript.Invoke()
 
-    New-PSPackageProjectPackage -ErrorAction Stop
+    if (!$BuildOnly.IsPresent) {
+        Invoke-PSPackageProjectPublish
+    }
 
     Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
+function Invoke-PSPackageProjectPublish {
+    [CmdletBinding()]
+    param(
+        [Switch]
+        $Signed
+    )
+
+    Write-Verbose -Verbose -Message "Publishing package ..."
+
+    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -ErrorAction Stop
+
+    Write-Verbose -Verbose -Message "Finished invoking build script"
+}
 function New-PSPackageProjectPackage
 {
     [CmdletBinding()]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
-    param ()
+    param (
+        [Switch]
+        $Signed
+    )
+
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
     $config = Get-PSPackageProjectConfiguration
-    $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    if(!$Signed.IsPresent)
+    {
+        $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    }
+    else
+    {
+        $modulePath = Join-Path2 -Path $config.SignedOutputPath -ChildPath $config.ModuleName
+    }
+
     $sourceName = 'pspackageproject-local-repo'
     $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath $sourceName
     $modulesLocation = Join-Path2 -Path $packageLocation -ChildPath 'modules'

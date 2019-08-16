@@ -3,5 +3,6 @@
     "ModuleName": "PSPackageProject",
     "TestPath": "test",
     "HelpPath": "help",
-    "BuildOutputPath": "out"
+    "BuildOutputPath": "out",
+    "SignedOutputPath": "signed"
 }

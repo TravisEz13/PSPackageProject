@@ -80,6 +80,7 @@ FunctionsToExport = @(
     'Export-PSPackageProjectHelp'
     'New-PSPackageProjectHelp'
     'Invoke-PSPackageProjectBuild'
+    'Invoke-PSPackageProjectPublish'
     'Get-PSPackageProjectConfiguration'
 )
 

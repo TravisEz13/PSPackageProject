@@ -10,6 +10,14 @@ param (
     [switch]
     $Build,
 
+    [Parameter(ParameterSetName="publish")]
+    [switch]
+    $Publish,
+
+    [Parameter(ParameterSetName="publish")]
+    [switch]
+    $Signed,
+
     [Parameter(ParameterSetName="build")]
     [switch]
     $Test,
@@ -29,8 +37,11 @@ $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
+$script:TestPath = $config.TestPath
 
 $script:ModuleRoot = $PSScriptRoot
+$script:Culture = $config.Culture
+$script:HelpPath = $config.HelpPath
 
 <#
 .DESCRIPTION
@@ -71,7 +82,12 @@ else
 if ($Build.IsPresent)
 {
     $sb = (Get-Item Function:DoBuild).ScriptBlock
-    Invoke-PSPackageProjectBuild -BuildScript $sb
+    Invoke-PSPackageProjectBuild -BuildScript $sb -BuildOnly
+}
+
+if ($Publish.IsPresent)
+{
+    Invoke-PSPackageProjectPublish -Signed:$Signed.IsPresent
 }
 
 if ( $Test.IsPresent ) {
@@ -79,5 +95,5 @@ if ( $Test.IsPresent ) {
 }
 
 if ($UpdateHelp.IsPresent) {
-    Add-PSPackageProjectCmdletHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName -Culture $config.Culture
+    Add-PSPackageProjectCmdletHelp -ProjectRoot $ModuleRoot -ModuleName $ModuleName -Culture $Culture
 }
