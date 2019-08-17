@@ -47,11 +47,11 @@ $script:HelpPath = $config.HelpPath
 
 if ($env:TF_BUILD) {
     $vstsCommandString = "vso[task.setvariable variable=BUILD_OUTPUT_PATH]$(Join-Path $PSScriptRoot  -ChildPath $OutDirectory)"
-    Write-Host "sending " + $vstsCommandString
+    Write-Host ("sending " + $vstsCommandString)
     Write-Host "##$vstsCommandString"
 
     $vstsCommandString = "vso[task.setvariable variable=SIGNED_OUTPUT_PATH]$(Join-Path $PSScriptRoot  -ChildPath $SignedDirectory)"
-    Write-Host "sending " + $vstsCommandString
+    Write-Host ("sending " + $vstsCommandString)
     Write-Host "##$vstsCommandString"
 }
 
