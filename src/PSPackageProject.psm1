@@ -649,7 +649,7 @@ function Invoke-PSPackageProjectPublish {
 
     New-PSPackageProjectPackage -Signed:$Signed.IsPresent -ErrorAction Stop
 
-    Write-Verbose -Verbose -Message "Finished invoking build script"
+    Write-Verbose -Verbose -Message "Finished publishing package"
 }
 function New-PSPackageProjectPackage
 {
