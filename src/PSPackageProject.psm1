@@ -622,26 +622,55 @@ function Invoke-PSPackageProjectBuild {
     param(
         [Parameter()]
         [ScriptBlock]
-        $BuildScript
+        $BuildScript,
+        [Switch]
+        $SkipPublish
     )
 
     Write-Verbose -Verbose -Message "Invoking build script"
 
     $BuildScript.Invoke()
 
-    New-PSPackageProjectPackage -ErrorAction Stop
+    if (!$SkipPublish.IsPresent) {
+        Invoke-PSPackageProjectPublish
+    }
 
     Write-Verbose -Verbose -Message "Finished invoking build script"
 }
 
+function Invoke-PSPackageProjectPublish {
+    [CmdletBinding()]
+    param(
+        [Switch]
+        $Signed
+    )
+
+    Write-Verbose -Verbose -Message "Publishing package ..."
+
+    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -ErrorAction Stop
+
+    Write-Verbose -Verbose -Message "Finished publishing package"
+}
 function New-PSPackageProjectPackage
 {
     [CmdletBinding()]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
-    param ()
+    param (
+        [Switch]
+        $Signed
+    )
+
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
     $config = Get-PSPackageProjectConfiguration
-    $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    if(!$Signed.IsPresent)
+    {
+        $modulePath = Join-Path2 -Path $config.BuildOutputPath -ChildPath $config.ModuleName
+    }
+    else
+    {
+        $modulePath = Join-Path2 -Path $config.SignedOutputPath -ChildPath $config.ModuleName
+    }
+
     $sourceName = 'pspackageproject-local-repo'
     $packageLocation = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath $sourceName
     $modulesLocation = Join-Path2 -Path $packageLocation -ChildPath 'modules'
@@ -768,6 +797,7 @@ function Initialize-PSPackageProject {
         TestPath = 'test'
         HelpPath = 'help'
         BuildOutputPath = 'out'
+        SignedOutputPath = 'out'
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 
@@ -859,6 +889,10 @@ Describe "Test ${moduleName}" -tags CI {
     # make build.ps1
     $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
     Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
+
+    # make .gitignore
+    $boilerplateGitIgnore = Join-Path -Path $PSScriptRoot -ChildPath 'gitignore_for_init'
+    Copy-Item $boilerplateGitIgnore -Destination (Join-Path $ModuleRoot -ChildPath '.gitignore') -Force
 }
 
 function Get-PSPackageProjectConfiguration {

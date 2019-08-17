@@ -16,6 +16,8 @@ stages:
   jobs:
   - job: BuildPkg
     displayName: Build Package
+    pool:
+      vmImage: windows-2019
     steps:
     - pwsh: |
         Install-Module -Name "platyPS","Pester" -Force
@@ -29,7 +31,16 @@ stages:
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
         $(Build.SourcesDirectory)/build.ps1 -Build
-      displayName: Build and publish artifact
+      displayName: Build
+    - pwsh: |
+        Write-Verbose "BUILD_OUTPUT_PATH- $env:BUILD_OUTPUT_PATH" -Verbose
+        Write-Verbose "SIGNED_OUTPUT_PATH- $env:SIGNED_OUTPUT_PATH" -Verbose
+        Copy-Item $env:BUILD_OUTPUT_PATH $env:SIGNED_OUTPUT_PATH -Recurse -Force
+      displayName: Build Signing Placeholder
+    - pwsh: |
+        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
+        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+      displayName: Publish
 
 - stage: Test
   displayName: Test Package
