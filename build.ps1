@@ -37,11 +37,22 @@ $config = Get-Content -Path (Join-Path $PSScriptRoot 'pspackageproject.json') | 
 $script:ModuleName = $config.ModuleName
 $script:SrcPath = $config.SourcePath
 $script:OutDirectory = $config.BuildOutputPath
+$script:SignedDirectory = $config.SignedOutputPath
 $script:TestPath = $config.TestPath
 
 $script:ModuleRoot = $PSScriptRoot
 $script:Culture = $config.Culture
 $script:HelpPath = $config.HelpPath
+
+if ($env:TF_BUILD) {
+    $vstsCommandString = "vso[task.setvariable variable=BUILD_OUTPUT_PATH]$(Join-Path $PSScriptRoot  -ChildPath $OutDirectory)"
+    Write-Host "sending " + $vstsCommandString
+    Write-Host "##$vstsCommandString"
+
+    $vstsCommandString = "vso[task.setvariable variable=SIGNED_OUTPUT_PATH]$(Join-Path $PSScriptRoot  -ChildPath $SignedDirectory)"
+    Write-Host "sending " + $vstsCommandString
+    Write-Host "##$vstsCommandString"
+}
 
 <#
 .DESCRIPTION

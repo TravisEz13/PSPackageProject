@@ -32,7 +32,9 @@ stages:
         $(Build.SourcesDirectory)/build.ps1 -Build
       displayName: Build
     - pwsh: |
-        Copy-Item $env:BUILD_SOURCESDIRECTORY/out $env:BUILD_SOURCESDIRECTORY/signed -Recurse -Force
+        Write-Verbose "BUILD_OUTPUT_PATH- $env:BUILD_OUTPUT_PATH" -Verbose
+        Write-Verbose "SIGNED_OUTPUT_PATH- $env:SIGNED_OUTPUT_PATH" -Verbose
+        Copy-Item $env:BUILD_OUTPUT_PATH $env:SIGNED_OUTPUT_PATH -Recurse -Force
       displayName: Build Signing Placeholder
     - pwsh: |
         $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
@@ -72,4 +74,4 @@ stages:
   condition: and( eq(variables['Build.Reason'], 'Manual'), eq(variables['Publish'], 'Yes'))
   jobs:
   - template: release.yml
-  
+
