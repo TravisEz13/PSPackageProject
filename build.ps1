@@ -82,7 +82,7 @@ else
 if ($Build.IsPresent)
 {
     $sb = (Get-Item Function:DoBuild).ScriptBlock
-    Invoke-PSPackageProjectBuild -BuildScript $sb -BuildOnly
+    Invoke-PSPackageProjectBuild -BuildScript $sb -SkipPublish
 }
 
 if ($Publish.IsPresent)

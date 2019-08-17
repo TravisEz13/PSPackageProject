@@ -624,14 +624,14 @@ function Invoke-PSPackageProjectBuild {
         [ScriptBlock]
         $BuildScript,
         [Switch]
-        $BuildOnly
+        $SkipPublish
     )
 
     Write-Verbose -Verbose -Message "Invoking build script"
 
     $BuildScript.Invoke()
 
-    if (!$BuildOnly.IsPresent) {
+    if (!$SkipPublish.IsPresent) {
         Invoke-PSPackageProjectPublish
     }
 
