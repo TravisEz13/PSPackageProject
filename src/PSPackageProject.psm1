@@ -889,9 +889,9 @@ Describe "Test ${moduleName}" -tags CI {
     # make build.ps1
     $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
     Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
-    $boilerplateDoBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'dobuild.ps1'
+    $boilerplateDoBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'dobuild.txt'
     Copy-Item $boilerplateDoBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'dobuild.ps1') -Force
-    
+
     # make .gitignore
     $boilerplateGitIgnore = Join-Path -Path $PSScriptRoot -ChildPath 'gitignore_for_init'
     Copy-Item $boilerplateGitIgnore -Destination (Join-Path $ModuleRoot -ChildPath '.gitignore') -Force
