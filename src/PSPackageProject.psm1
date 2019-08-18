@@ -701,12 +701,7 @@ function New-PSPackageProjectPackage
     }
 
     Write-Verbose -Verbose -Message "Starting to publish module: $modulePath"
-    $verbose = $false
-    if ($env:TF_BUILD) {
-        $verbose = $true
-    }
-
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force -Verbose:$verbose
+    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
 
     Write-Verbose -Message "Local package published" -Verbose
 
