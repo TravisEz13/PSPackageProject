@@ -44,7 +44,7 @@ stages:
       timeoutInMinutes: 10
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed -Verbose
       displayName: Publish
       timeoutInMinutes: 10
 
