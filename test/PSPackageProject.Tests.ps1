@@ -3,6 +3,11 @@ Describe "PSPackageProject tests" -Tag "CI" {
         $testCases = @()
         $config = Get-PSPackageProjectConfiguration
         $expectedRootPath = (Resolve-Path "$PSScriptRoot/..").providerPath
+        $signedRoot = (Join-Path -Path $expectedRootPath -ChildPath 'signed')
+        if ( ! (Test-Path -Path $signedRoot)) {
+            $null = New-Item -ItemType Directory -Path (Join-Path -Path $expectedRootPath -ChildPath 'signed')
+        }
+
         $testCases += @{
             config = $config
             expectedRootPath = $expectedRootPath
