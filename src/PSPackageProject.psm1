@@ -929,7 +929,7 @@ function Get-PSPackageProjectConfiguration {
             $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath $configObj.SignedOutputPath
         }
         else {
-            $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath 'signed'
+            $configObj | Add-Member -MemberType NoteProperty -Name SignedOutputPath -Value (Join-Path $projectRoot -ChildPath 'signed')
         }
 
         $configObj
