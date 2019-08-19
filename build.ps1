@@ -46,11 +46,11 @@ $script:HelpPath = $config.HelpPath
 
 if ($env:TF_BUILD) {
     $vstsCommandString = "vso[task.setvariable variable=BUILD_OUTPUT_PATH]$(Join-Path $PSScriptRoot  -ChildPath $OutDirectory)"
-    Write-Host "sending " + $vstsCommandString
+    Write-Host ("sending " + $vstsCommandString)
     Write-Host "##$vstsCommandString"
 
     $vstsCommandString = "vso[task.setvariable variable=SIGNED_OUTPUT_PATH]$(Join-Path $PSScriptRoot  -ChildPath $SignedDirectory)"
-    Write-Host "sending " + $vstsCommandString
+    Write-Host ("sending " + $vstsCommandString)
     Write-Host "##$vstsCommandString"
 }
 
@@ -61,11 +61,15 @@ Implement build and packaging of the package and place the output $OutDirectory/
 function DoBuild
 {
     Write-Verbose -Verbose -Message "Starting DoBuild"
-    Get-ChildItem -Path $script:SrcPath -Filter "*.ps*1" |
+    Get-ChildItem -Path $script:SrcPath -Filter "*.ps?1"  |
         ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
     Copy-Item -Path (Join-Path $script:SrcPath 'yml') -Recurse $script:OutModule -Force -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'gitignore_for_init') -Destination $script:OutModule -Verbose
+
+    # Workaround problem where two ps1 files in a nuget causes nuget packaging to hang.
+    # rename it to PSM1 so that static analysis still works
+    Copy-Item -Path (Join-Path $script:SrcPath 'dobuild.ps1') -Destination $script:OutModule/dobuild.psm1 -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'WHAT_TO_DO_NEXT.md') -Destination $script:OutModule -Verbose
 
     Write-Verbose -Verbose -Message "Ending DoBuild"
