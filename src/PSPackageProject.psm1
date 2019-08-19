@@ -797,7 +797,7 @@ function Initialize-PSPackageProject {
         TestPath = 'test'
         HelpPath = 'help'
         BuildOutputPath = 'out'
-        SignedOutputPath = 'out'
+        SignedOutputPath = 'signed'
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 
