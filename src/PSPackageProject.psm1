@@ -925,6 +925,12 @@ function Get-PSPackageProjectConfiguration {
         $configObj.TestPath = Join-Path $projectRoot -ChildPath $configObj.TestPath
         $configObj.HelpPath = Join-Path $projectRoot -ChildPath $configObj.HelpPath
         $configObj.BuildOutputPath = Join-Path $projectRoot -ChildPath $configObj.BuildOutputPath
+        if ($configObj.SignedOutputPath) {
+            $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath $configObj.SignedOutputPath
+        }
+        else {
+            $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath 'signed'
+        }
 
         $configObj
     }
