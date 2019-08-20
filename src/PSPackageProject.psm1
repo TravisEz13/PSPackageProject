@@ -817,14 +817,19 @@ function Initialize-PSPackageProject {
     $moduleSourceBase = Join-Path $ModuleRoot "src"
     $null = New-Item -ItemType Directory -Path $moduleSourceBase
     $moduleFileWithoutExtension = Join-Path $moduleSourceBase ${ModuleName}
+    $newModuleParams = @{}
+    if ($PSVersionTable.PSVersion.Major -ge 7) {
+        $newModuleParams.Add('RequireLicenseAcceptance', $false)
+    }
+
     New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1" `
         -CmdletsToExport "verb-noun" `
         -RootModule "./${ModuleName}.dll" `
         -Description $Description `
         -LicenseUri $LicenseUrl `
-        -RequireLicenseAcceptance:$false `
         -FunctionsToExport @() `
-        -AliasesToExport @()
+        -AliasesToExport @() `
+        @newModuleParams
 
     $null = New-Item -Type File "${moduleFileWithoutExtension}.psm1"
 
