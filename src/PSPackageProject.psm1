@@ -797,7 +797,7 @@ function Initialize-PSPackageProject {
         TestPath = 'test'
         HelpPath = 'help'
         BuildOutputPath = 'out'
-        SignedOutputPath = 'out'
+        SignedOutputPath = 'signed'
         Culture = [CultureInfo]::CurrentCulture.Name # This needs to be settable
     } | ConvertTo-Json
 
@@ -817,14 +817,19 @@ function Initialize-PSPackageProject {
     $moduleSourceBase = Join-Path $ModuleRoot "src"
     $null = New-Item -ItemType Directory -Path $moduleSourceBase
     $moduleFileWithoutExtension = Join-Path $moduleSourceBase ${ModuleName}
+    $newModuleParams = @{}
+    if ($PSVersionTable.PSVersion.Major -ge 7) {
+        $newModuleParams.Add('RequireLicenseAcceptance', $false)
+    }
+
     New-ModuleManifest -Path "${moduleFileWithoutExtension}.psd1" `
         -CmdletsToExport "verb-noun" `
         -RootModule "./${ModuleName}.dll" `
         -Description $Description `
         -LicenseUri $LicenseUrl `
-        -RequireLicenseAcceptance:$false `
         -FunctionsToExport @() `
-        -AliasesToExport @()
+        -AliasesToExport @() `
+        @newModuleParams
 
     $null = New-Item -Type File "${moduleFileWithoutExtension}.psm1"
 
@@ -929,7 +934,7 @@ function Get-PSPackageProjectConfiguration {
             $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath $configObj.SignedOutputPath
         }
         else {
-            $configObj.SignedOutputPath = Join-Path $projectRoot -ChildPath 'signed'
+            $configObj | Add-Member -MemberType NoteProperty -Name SignedOutputPath -Value (Join-Path $projectRoot -ChildPath 'signed')
         }
 
         $configObj
