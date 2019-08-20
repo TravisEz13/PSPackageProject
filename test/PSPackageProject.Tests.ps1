@@ -1,5 +1,6 @@
 Describe "PSPackageProject tests" -Tag "CI" {
     BeforeAll {
+        # Create test case for this project
         $testCases = @()
         $config = Get-PSPackageProjectConfiguration
         $expectedRootPath = (Resolve-Path "$PSScriptRoot/..").providerPath
@@ -12,9 +13,14 @@ Describe "PSPackageProject tests" -Tag "CI" {
             config = $config
             expectedRootPath = $expectedRootPath
             name = 'This Project'
-            verifyExists=$true
             moduleName = 'PSPackageProject'
         }
+
+        # Create Older json test case
+        $expectedRootPath = Join-Path -Path $testdrive -ChildPath 'testcase'
+        Initialize-PSPackageProject -ModuleName testcase -ModuleBase $expectedRootPath
+        $null = New-Item -ItemType Directory -Path (Join-Path -Path $expectedRootPath -ChildPath 'signed')
+        $null = New-Item -ItemType Directory -Path (Join-Path -Path $expectedRootPath -ChildPath 'out')
         $jsonPrj =
             @{
                 SourcePath = "src"
@@ -24,15 +30,14 @@ Describe "PSPackageProject tests" -Tag "CI" {
                 BuildOutputPath = 'out'
                 Culture = [CultureInfo]::CurrentCulture.Name
             } | ConvertTo-Json
-        $configPath = 'testdrive:/pspackageproject.json'
+        $configPath = "$expectedRootPath/pspackageproject.json"
         $jsonPrj | Out-File -FilePath $configPath
         $config = Get-PSPackageProjectConfiguration $configPath
-        $expectedRootPath = 'testdrive:/'
+
         $testCases += @{
             config = $config
             expectedRootPath = $expectedRootPath
             name = 'Older Json'
-            verifyExists=$false
             moduleName = 'testcase'
         }
     }
@@ -41,12 +46,10 @@ Describe "PSPackageProject tests" -Tag "CI" {
         param(
             $config,
             $expectedRootPath,
-            $name,
-            $verifyExists
+            $name
         )
-        if ($VerifyExists) {
-            $config.TestPath | Should -Exist
-        }
+
+        $config.TestPath | Should -Exist
         $config.TestPath | Should -Be (Join-Path -Path $expectedRootPath -ChildPath "/test")
     }
 
@@ -54,12 +57,10 @@ Describe "PSPackageProject tests" -Tag "CI" {
         param(
             $config,
             $expectedRootPath,
-            $name,
-            $verifyExists
+            $name
         )
-        if ($VerifyExists) {
-            $config.BuildOutputPath | Should -Exist
-        }
+
+        $config.BuildOutputPath | Should -Exist
         $config.BuildOutputPath | Should -Be (Join-Path -Path $expectedRootPath -ChildPath "/out")
     }
 
@@ -67,12 +68,10 @@ Describe "PSPackageProject tests" -Tag "CI" {
         param(
             $config,
             $expectedRootPath,
-            $name,
-            $verifyExists
+            $name
         )
-        if ($VerifyExists) {
-            $config.SignedOutputPath | Should -Exist
-        }
+
+        $config.SignedOutputPath | Should -Exist
         $config.SignedOutputPath | Should -Be (Join-Path -Path $expectedRootPath -ChildPath "/signed")
     }
 
@@ -81,12 +80,10 @@ Describe "PSPackageProject tests" -Tag "CI" {
         param(
             $config,
             $expectedRootPath,
-            $name,
-            $verifyExists
+            $name
         )
-        if ($VerifyExists) {
-            $config.SourcePath | Should -Exist
-        }
+
+        $config.SourcePath | Should -Exist
         $config.SourcePath | Should -Be (Join-Path -Path $expectedRootPath -ChildPath "/src")
     }
 
@@ -94,12 +91,10 @@ Describe "PSPackageProject tests" -Tag "CI" {
         param(
             $config,
             $expectedRootPath,
-            $name,
-            $verifyExists
+            $name
         )
-        if ($VerifyExists) {
-            $config.HelpPath | Should -Exist
-        }
+
+        $config.HelpPath | Should -Exist
         $config.HelpPath | Should -Be (Join-Path -Path $expectedRootPath -ChildPath "/help")
     }
 
