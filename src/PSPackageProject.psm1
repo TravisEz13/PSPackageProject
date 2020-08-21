@@ -706,6 +706,10 @@ function New-PSPackageProjectPackage
     Write-Verbose -Message "Local package published" -Verbose
 
     $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter "$($config.ModuleName)*.nupkg").FullName
+    if (!$nupkgPath) {
+        throw "$($config.ModuleName)*.nupkg not found in $modulesLocation"
+    }
+    
     Publish-Artifact -Path $nupkgPath -Name nupkg
 
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
