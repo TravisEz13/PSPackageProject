@@ -21,7 +21,7 @@ stages:
     steps:
     - pwsh: |
         Install-Module -Name "platyPS","Pester" -Force
-      displayName: Install dependencies
+      displayName: Install platyPS and Pesters
       timeoutInMinutes: 10
     - pwsh: |
         Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
