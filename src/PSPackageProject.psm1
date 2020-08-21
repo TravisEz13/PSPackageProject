@@ -707,6 +707,7 @@ function New-PSPackageProjectPackage
 
     $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter "$($config.ModuleName)*.nupkg").FullName
     if (!$nupkgPath) {
+        Write-Verbose -Verbose -Message "Publish location: $((Get-ChildItem -Path $modulesLocation -Recurse) | Out-String)"
         throw "$($config.ModuleName)*.nupkg not found in $modulesLocation"
     }
     
