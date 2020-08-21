@@ -31,6 +31,12 @@ stages:
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       displayName: Install PSPackageProject module
       timeoutInMinutes: 10
+
+    - pwsh: |
+        Get-Module -ListAvailable Pester, platyPS, PowerShellGet, PackageManagement
+      displayName: List installed Moduless
+      timeoutInMinutes: 10
+
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
         $(Build.SourcesDirectory)/build.ps1 -Build
