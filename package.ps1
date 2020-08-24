@@ -1,7 +1,8 @@
 param(
     [parameter(Mandatory)]
     $Version,
-    $Folder = $env:SIGNED_OUTPUT_PATH
+    $Folder = $env:SIGNED_OUTPUT_PATH,
+    $OutputDirectory = ([System.IO.Path]::GetTempPath())
 )
 
 $nuspec = @'
@@ -72,8 +73,8 @@ $actualNuspec | Out-File -FilePath $nuspecPath -Encoding utf8NoBOM
 
 Push-Location $Folder
 try {
-    nuget pack $nuspecPath
-    $nupkgPath = Get-ChildItem -Path *.nupkg -Recurse | Select-Object -ExcludeProperty FullName -First 1
+    nuget pack $nuspecPath -NoPackageAnalysis -OutputDirectory $OutputDirectory
+    $nupkgPath = Get-ChildItem -Path $OutputDirectory\*.nupkg -Recurse | Select-Object -ExcludeProperty FullName -First 1
     Publish-Artifact -Path $nupkgPath -Name nupkg
 }
 finally {
