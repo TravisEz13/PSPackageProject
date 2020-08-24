@@ -68,11 +68,15 @@ stages:
     - pwsh: |
         Install-Module -Name PSPackageProject -Force
         $config = Get-PSPackageProjectConfiguration
-        $(Build.SourcesDirectory)/package.ps1 -Version $config.Version -OutputDirectory '$(System.ArtifactsDirectory)''
+        $(Build.SourcesDirectory)/package.ps1 -Version $config.Version -OutputDirectory '$(System.ArtifactsDirectory)'
         # $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
       displayName: Publish
       timeoutInMinutes: 10
 
+    - pwsh: |
+        dir '$(System.ArtifactsDirectory)' -Recurse
+      displayName: capture ArtifactsDirectory
+      timeoutInMinutes: 10
 - stage: Test
   displayName: Test Package
   jobs:
