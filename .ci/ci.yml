@@ -17,16 +17,23 @@ stages:
   - job: BuildPkg
     displayName: Build Package
     pool:
-      vmImage: windows-2019
+      vmImage: windows-latest
     steps:
     - pwsh: |
-        Install-Module -Name "platyPS","Pester" -Force
-      displayName: Install platyPS and Pesters
+        Install-module Pester -Force -MaximumVersion 4.99
+      displayName: Install dependencies - Pester
       timeoutInMinutes: 10
+
+    - pwsh: |
+        Install-Module -Name "platyPS" -Force
+      displayName: Install dependencies - PlatyPS
+      timeoutInMinutes: 10
+
     - pwsh: |
         Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
       displayName: Install PSScriptAnalyzer
       timeoutInMinutes: 10
+
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       displayName: Install PSPackageProject module
@@ -42,12 +49,14 @@ stages:
         $(Build.SourcesDirectory)/build.ps1 -Build
       displayName: Build
       timeoutInMinutes: 10
+
     - pwsh: |
         Write-Verbose "BUILD_OUTPUT_PATH- $env:BUILD_OUTPUT_PATH" -Verbose
         Write-Verbose "SIGNED_OUTPUT_PATH- $env:SIGNED_OUTPUT_PATH" -Verbose
         Copy-Item $env:BUILD_OUTPUT_PATH $env:SIGNED_OUTPUT_PATH -Recurse -Force
       displayName: Build Signing Placeholder
       timeoutInMinutes: 10
+
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
         $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
