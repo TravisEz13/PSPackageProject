@@ -40,8 +40,13 @@ stages:
       timeoutInMinutes: 10
 
     - pwsh: |
+        Import-Module PowerShellGet -RequiredVersion 3.0.0-beta8 -Force
+      displayName: Install PowerShellGet V3
+      timeoutInMinutes: 10
+
+    - pwsh: |
         Get-Module -ListAvailable Pester, platyPS, PowerShellGet, PackageManagement
-      displayName: List installed Moduless
+      displayName: List installed Modules
       timeoutInMinutes: 10
 
     - pwsh: |
