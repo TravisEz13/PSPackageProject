@@ -53,6 +53,7 @@ jobs:
       Invoke-PSPackageProjectTest -Type StaticAnalysis
     displayName: Execute static analysis tests
     errorActionPreference: continue
+    continueOnError: true
     condition: succeededOrFailed()
     timeoutInMinutes: 10
 
