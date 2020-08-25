@@ -35,13 +35,13 @@ stages:
       timeoutInMinutes: 10
 
     - pwsh: |
-        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-      displayName: Install PSPackageProject module
+        Install-Module PowerShellGet -RequiredVersion 3.0.0-beta8 -AllowPrerelease -Force
+      displayName: Install PowerShellGet V3
       timeoutInMinutes: 10
 
     - pwsh: |
-        Import-Module PowerShellGet -RequiredVersion 3.0.0-beta8 -AllowPrerelease -Force
-      displayName: Install PowerShellGet V3
+        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
+      displayName: Install PSPackageProject module
       timeoutInMinutes: 10
 
     - pwsh: |
