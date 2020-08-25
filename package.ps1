@@ -32,39 +32,6 @@ $nuspec = @'
 </package>
 '@
 
-# Wrapper to push artifact
-function Publish-Artifact
-{
-    [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
-    param(
-        [Parameter(Mandatory)]
-        $Path,
-        [string]
-        $Name
-    )
-
-    if (-not (Test-Path $Path)) {
-        Write-Warning "Path: $Path does not exist"
-        return
-    }
-
-    $resolvedPath = (Resolve-Path -Path $Path).ProviderPath
-
-    if(!$Name)
-    {
-        $artifactName = [system.io.path]::GetFileName($Path)
-    }
-    else
-    {
-        $artifactName = $Name
-    }
-
-    if ($env:TF_BUILD) {
-        # In Azure DevOps
-        Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$resolvedPath"
-    }
-}
-
 $actualNuspec = $nuspec -f $Version
 
 $nuspecPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "test.nuspec"
@@ -74,8 +41,6 @@ $actualNuspec | Out-File -FilePath $nuspecPath -Encoding utf8NoBOM
 Push-Location $Folder
 try {
     nuget pack $nuspecPath -NoPackageAnalysis -OutputDirectory $OutputDirectory
-    $nupkgPath = Get-ChildItem -Path $OutputDirectory\*.nupkg -Recurse | Select-Object -ExcludeProperty FullName -First 1
-    Publish-Artifact -Path $nupkgPath -Name nupkg
 }
 finally {
     Pop-Location

@@ -77,6 +77,12 @@ stages:
         dir '$(System.ArtifactsDirectory)' -Recurse
       displayName: capture ArtifactsDirectory
       timeoutInMinutes: 10
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(System.ArtifactsDirectory)\*'
+        artifactName: 'nupkg'
+
 - stage: Test
   displayName: Test Package
   jobs:
