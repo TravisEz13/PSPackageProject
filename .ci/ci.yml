@@ -40,7 +40,7 @@ stages:
       timeoutInMinutes: 10
 
     - pwsh: |
-        Import-Module PowerShellGet -RequiredVersion 3.0.0-beta8 -Force
+        Import-Module PowerShellGet -RequiredVersion 3.0.0-beta8 -AllowPrerelease -Force
       displayName: Install PowerShellGet V3
       timeoutInMinutes: 10
 
