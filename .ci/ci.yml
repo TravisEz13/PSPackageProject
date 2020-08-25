@@ -80,7 +80,7 @@ stages:
 
     - task: PublishBuildArtifacts@1
       inputs:
-        pathToPublish: '$(System.ArtifactsDirectory)\*.*'
+        pathToPublish: '$(System.ArtifactsDirectory)'
         artifactName: 'nupkg'
 
 - stage: Test
