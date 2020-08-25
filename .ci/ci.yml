@@ -17,36 +17,71 @@ stages:
   - job: BuildPkg
     displayName: Build Package
     pool:
-      vmImage: windows-2019
+      vmImage: windows-latest
     steps:
     - pwsh: |
-        Install-Module -Name "platyPS","Pester" -Force
-      displayName: Install dependencies
+        Install-module Pester -Force -MaximumVersion 4.99
+      displayName: Install dependencies - Pester
       timeoutInMinutes: 10
+
+    - pwsh: |
+        Install-Module -Name "platyPS" -Force
+      displayName: Install dependencies - PlatyPS
+      timeoutInMinutes: 10
+
     - pwsh: |
         Install-Module -Name "PSScriptAnalyzer" -RequiredVersion 1.18.0 -Force
       displayName: Install PSScriptAnalyzer
       timeoutInMinutes: 10
+
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       displayName: Install PSPackageProject module
       timeoutInMinutes: 10
+
+    - pwsh: |
+        Get-Module -ListAvailable Pester, platyPS, PowerShellGet, PackageManagement
+      displayName: List installed Moduless
+      timeoutInMinutes: 10
+
+    - pwsh: |
+        Install-Module -Name PSPackageProject -Force
+        $config = Get-PSPackageProjectConfiguration
+        $psd1Path = Join-Path -path $config.SourcePath -ChildPath "$($config.ModuleName).psd1"
+        Update-ModuleManifest -path $psd1Path -ModuleVersion $config.Version
+      displayName: Update Version
+      timeoutInMinutes: 10
+
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
         $(Build.SourcesDirectory)/build.ps1 -Build
       displayName: Build
       timeoutInMinutes: 10
+
     - pwsh: |
         Write-Verbose "BUILD_OUTPUT_PATH- $env:BUILD_OUTPUT_PATH" -Verbose
         Write-Verbose "SIGNED_OUTPUT_PATH- $env:SIGNED_OUTPUT_PATH" -Verbose
         Copy-Item $env:BUILD_OUTPUT_PATH $env:SIGNED_OUTPUT_PATH -Recurse -Force
       displayName: Build Signing Placeholder
       timeoutInMinutes: 10
+
     - pwsh: |
-        Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
-        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+        Install-Module -Name PSPackageProject -Force
+        $config = Get-PSPackageProjectConfiguration
+        $(Build.SourcesDirectory)/package.ps1 -Version $config.Version -OutputDirectory '$(System.ArtifactsDirectory)'
+        # $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
       displayName: Publish
       timeoutInMinutes: 10
+
+    - pwsh: |
+        dir '$(System.ArtifactsDirectory)' -Recurse
+      displayName: capture ArtifactsDirectory
+      timeoutInMinutes: 10
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        pathToPublish: '$(System.ArtifactsDirectory)'
+        artifactName: 'nupkg'
 
 - stage: Test
   displayName: Test Package

@@ -4,5 +4,6 @@
     "TestPath": "test",
     "HelpPath": "help",
     "BuildOutputPath": "out",
-    "SignedOutputPath": "signed"
+    "SignedOutputPath": "signed",
+    "Version": "0.1.14"
 }
