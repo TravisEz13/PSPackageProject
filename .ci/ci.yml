@@ -50,13 +50,13 @@ stages:
       displayName: List installed Modules
       timeoutInMinutes: 10
 
-    - pwsh: |
-        Install-Module -Name PSPackageProject -Force
-        $config = Get-PSPackageProjectConfiguration
-        $psd1Path = Join-Path -path $config.SourcePath -ChildPath "$($config.ModuleName).psd1"
-        Update-ModuleManifest -path $psd1Path -ModuleVersion $config.Version
-      displayName: Update Version
-      timeoutInMinutes: 10
+#    - pwsh: |
+#        Install-Module -Name PSPackageProject -Force
+#        $config = Get-PSPackageProjectConfiguration
+#        $psd1Path = Join-Path -path $config.SourcePath -ChildPath "$($config.ModuleName).psd1"
+#        Update-ModuleManifest -path $psd1Path -ModuleVersion $config.Version
+#      displayName: Update Version
+#      timeoutInMinutes: 10
 
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
