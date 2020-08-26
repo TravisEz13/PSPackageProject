@@ -716,7 +716,13 @@ function New-PSPackageProjectPackage
 
     # if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
     # Use PowerShellGet V3
-    if ( !(Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)) {
+    try {
+        $repositoryExists = ! (Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)
+    }
+    catch {
+        $repositoryExists = $false
+    }
+    if ( !$repositoryExists) {
         # Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
         # Use PowerShellGet V3.
         Register-PSResourceRepository -Name $sourceName -URL (Convert-ToUri $modulesLocation)
