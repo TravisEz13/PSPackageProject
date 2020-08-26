@@ -36,6 +36,7 @@ stages:
 
     - pwsh: |
         Install-Module PowerShellGet -RequiredVersion 3.0.0-beta8 -AllowPrerelease -Force
+        Import-Module PowerShellGet -RequiredVersion 3.0.0 -Force
       displayName: Install PowerShellGet V3
       timeoutInMinutes: 10
 

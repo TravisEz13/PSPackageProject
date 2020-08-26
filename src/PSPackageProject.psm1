@@ -651,6 +651,23 @@ function Invoke-PSPackageProjectPublish {
 
     Write-Verbose -Verbose -Message "Finished publishing package"
 }
+
+function Convert-ToUri ( [string]$location ) {
+    $locationAsUri = $location -as [System.Uri]
+    if ( $locationAsUri.Scheme ) {
+        return $locationAsUri
+    }
+    # now determine if the path exists and is a directory
+    # if it exists, return it as a file uri
+    if ( Test-Path -PathType Container -LiteralPath $location ) {
+        $locationAsUri = "file://${location}" -as [System.Uri]
+        if( $locationAsUri.Scheme ) {
+            return $locationAsUri
+        }
+    }
+    throw "Cannot convert '$location' to System.Uri"
+}
+
 function New-PSPackageProjectPackage
 {
     [CmdletBinding()]
@@ -684,7 +701,7 @@ function New-PSPackageProjectPackage
     Write-Verbose -Message "Starting dependency download" -Verbose
     $module = Get-Module -Name $modulePath -ListAvailable -ErrorAction Stop
 
-    foreach($requiredModule in $module.RequiredModules)
+    foreach ($requiredModule in $module.RequiredModules)
     {
         $saveParams = @{Name = $requiredModule.Name}
         if($requiredModule.Version)
@@ -696,12 +713,20 @@ function New-PSPackageProjectPackage
     }
 
     Write-Verbose -Message "Dependency download complete" -Verbose
-    if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
-        Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
-    }
 
+    # if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
+    # Use PowerShellGet V3
+    if ( !(Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)) {
+        # Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
+        # Use PowerShellGet V3.
+        Register-PSResourceRepository -Name $sourceName -URL (Convert-ToUri $modulesLocation)
+    }
+ 
     Write-Verbose -Verbose -Message "Starting to publish module: $modulePath"
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
+
+    # Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
+    # Use PowerShellGet V3
+    Publish-PSResource  -Path $modulePath -Repository $sourceName -APIKey 'fake' -SkipDependenciesCheck
 
     Write-Verbose -Message "Local package published" -Verbose
 
