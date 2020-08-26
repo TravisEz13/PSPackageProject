@@ -72,10 +72,7 @@ stages:
       timeoutInMinutes: 10
 
     - pwsh: |
-        Install-Module -Name PSPackageProject -Force
-        $config = Get-PSPackageProjectConfiguration
-        $(Build.SourcesDirectory)/package.ps1 -Version $config.Version -OutputDirectory '$(System.ArtifactsDirectory)'
-        # $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
       displayName: Publish
       timeoutInMinutes: 10
 
