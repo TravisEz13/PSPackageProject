@@ -714,8 +714,7 @@ function New-PSPackageProjectPackage
 
     Write-Verbose -Message "Dependency download complete" -Verbose
 
-    # if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
-    # Use PowerShellGet V3
+    # Use PowerShellGet V3 to publish locally
     try {
         $repositoryExists = ! (Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)
     }
@@ -723,16 +722,12 @@ function New-PSPackageProjectPackage
         $repositoryExists = $false
     }
     if ( !$repositoryExists) {
-        # Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
-        # Use PowerShellGet V3.
         Register-PSResourceRepository -Name $sourceName -URL (Convert-ToUri $modulesLocation)
     }
  
     Write-Verbose -Verbose -Message "Starting to publish module: $modulePath"
 
-    # Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
-    # Use PowerShellGet V3
-    Publish-PSResource  -Path $modulePath -Repository $sourceName -APIKey 'fake' -SkipDependenciesCheck
+    Publish-PSResource -Path $modulePath -Repository $sourceName -APIKey 'fake' -SkipDependenciesCheck
 
     Write-Verbose -Message "Local package published" -Verbose
 
@@ -928,7 +923,7 @@ Describe "Test ${moduleName}" -tags CI {
     Initialize-CIYml -Path ${moduleRoot}
 
     # make build.ps1
-    $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
+    $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'dobuild_for_init.ps1'
     Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
     $boilerplateDoBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'dobuild.psm1'
     Copy-Item $boilerplateDoBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'dobuild.ps1') -Force
