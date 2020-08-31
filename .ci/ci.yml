@@ -76,15 +76,15 @@ stages:
       displayName: Publish
       timeoutInMinutes: 10
 
-    - pwsh: |
-        dir '$(System.ArtifactsDirectory)' -Recurse
-      displayName: capture ArtifactsDirectory
-      timeoutInMinutes: 10
+#    - pwsh: |
+#        dir '$(System.ArtifactsDirectory)' -Recurse
+#      displayName: capture ArtifactsDirectory
+#      timeoutInMinutes: 10
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathToPublish: '$(System.ArtifactsDirectory)'
-        artifactName: 'nupkg'
+#    - task: PublishBuildArtifacts@1
+#      inputs:
+#        pathToPublish: '$(System.ArtifactsDirectory)'
+#        artifactName: 'nupkg'
 
 - stage: Test
   displayName: Test Package
