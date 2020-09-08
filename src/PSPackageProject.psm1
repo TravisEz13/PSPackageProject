@@ -644,14 +644,12 @@ function Invoke-PSPackageProjectPublish {
         [Switch]
         $Signed,
         [Switch]
-        $SkipDependencyProcessing,
-        [Switch]
         $AllowPreReleaseDependencies
     )
 
     Write-Verbose -Verbose -Message "Publishing package ..."
 
-    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -AllowPreReleaseDependencies:$AllowPreReleaseDependencies.IsPresent -SkipDependencyProcessing:$SkipDependencyProcessing.IsPresent -ErrorAction Stop
+    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -AllowPreReleaseDependencies:$AllowPreReleaseDependencies.IsPresent -ErrorAction Stop
 
     Write-Verbose -Verbose -Message "Finished publishing package"
 }
@@ -680,8 +678,6 @@ function New-PSPackageProjectPackage
         [Switch]
         $Signed,
         [Switch]
-        $SkipDependencyProcessing,
-        [Switch]
         $AllowPreReleaseDependencies
     )
 
@@ -706,32 +702,25 @@ function New-PSPackageProjectPackage
 
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
 
-    if ($SkipDependencyProcessing)
-    {
-        Write-Verbose -Message "Skipping dependency download" -Verbose
-    }
-    else
-    {
-        Write-Verbose -Message "Starting dependency download" -Verbose
-        $module = Get-Module -Name $modulePath -ListAvailable -ErrorAction Stop
+    Write-Verbose -Message "Starting dependency download" -Verbose
+    $module = Get-Module -Name $modulePath -ListAvailable -ErrorAction Stop
 
-        foreach ($requiredModule in $module.RequiredModules)
+    foreach ($requiredModule in $module.RequiredModules)
+    {
+        $saveParams = @{Name = $requiredModule.Name}
+        if($requiredModule.Version)
         {
-            $saveParams = @{Name = $requiredModule.Name}
-            if($requiredModule.Version)
-            {
-                $saveParams.Add('RequiredVersion',$requiredModule.Version)
-            }
-
-            Save-Package2 @saveParams -Location $modulesLocation -AllowPreReleaseVersions:$AllowPreReleaseDependencies.IsPresent
+            $saveParams.Add('RequiredVersion',$requiredModule.Version)
         }
 
-        Write-Verbose -Message "Dependency download complete" -Verbose
+        Save-Package2 @saveParams -Location $modulesLocation -AllowPreReleaseVersions:$AllowPreReleaseDependencies.IsPresent
     }
+
+    Write-Verbose -Message "Dependency download complete" -Verbose
 
     # Use PowerShellGet V3 to publish locally
     try {
-        $repositoryExists = ! (Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)
+        $repositoryExists = $null -ne (Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)
     }
     catch {
         $repositoryExists = $false
