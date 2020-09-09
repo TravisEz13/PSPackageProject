@@ -16,8 +16,10 @@ jobs:
       downloadType: single
       artifactName: NuPkg
       downloadPath: '$(System.ArtifactsDirectory)'
+
   - task: NuGetToolInstaller@1
     displayName: 'Install NuGet'
+
   - pwsh: |
-        nuget push $(System.ArtifactsDirectory)\nupkg\*.nupkg -ApiKey $(NuGetApiKey) -Source https://www.powershellgallery.com/api/v2/package/ -NonInteractive
+        nuget push $(System.ArtifactsDirectory)\nupkg\PSPackageProject.*.nupkg -ApiKey $(NuGetApiKey) -Source https://www.powershellgallery.com/api/v2/package/ -NonInteractive
     displayName: Publish Package
