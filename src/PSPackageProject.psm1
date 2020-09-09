@@ -713,7 +713,22 @@ function New-PSPackageProjectPackage
             $saveParams.Add('RequiredVersion',$requiredModule.Version)
         }
 
+        # Download and save dependency nuget package
+        Write-Verbose -Verbose -Message "Saving required module: $($requiredModule.Name)"
         Save-Package2 @saveParams -Location $modulesLocation -AllowPreReleaseVersions:$AllowPreReleaseDependencies.IsPresent
+
+        # Publish nuget package to local repository
+        Write-Verbose -Verbose -Message "Publishing required module: $($requiredModule.Name)"
+        $filterName = "$($requiredModule.Name)*.nupkg"
+        $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter $filterName).FullName
+        if (!$nupkgPath)
+        {
+            Write-Verbose -Verbose -Message "Dependent package name not found: $filterName"
+        }
+        else
+        {
+            Publish-Artifact -Path $nupkgPath -Name nupkg
+        }
     }
 
     Write-Verbose -Message "Dependency download complete" -Verbose
