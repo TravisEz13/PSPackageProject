@@ -12,7 +12,7 @@
 RootModule = 'PSPackageProject.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.18'
+ModuleVersion = '0.1.17'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -53,6 +53,7 @@ Description = 'Module to help with building and publishing PowerShell packages'
 # Modules that must be imported into the global environment prior to importing this module
 RequiredModules = @(
     @{ ModuleName = 'platyPS'; ModuleVersion = '0.14.0' },
+    @{ ModuleName = 'Pester'; ModuleVersion = '4.8.1' },
     @{ ModuleName = 'PSScriptAnalyzer'; ModuleVersion = '1.18.0' }
 )
 
