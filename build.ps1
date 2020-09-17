@@ -66,7 +66,7 @@ function DoBuild
     Get-ChildItem -Path $script:SrcPath -Filter "*.ps?1"  |
         ForEach-Object { Copy-Item -Path $_.FullName -Destination $script:OutModule -Verbose }
     Copy-Item -Path (Join-Path $script:SrcPath 'yml') -Recurse $script:OutModule -Force -Verbose
-    Copy-Item -Path (Join-Path $script:SrcPath 'build_for_init.ps1') -Destination $script:OutModule -Verbose
+    Copy-Item -Path (Join-Path $script:SrcPath 'dobuild_for_init.ps1') -Destination $script:OutModule -Verbose
     Copy-Item -Path (Join-Path $script:SrcPath 'gitignore_for_init') -Destination $script:OutModule -Verbose
 
     # Workaround problem where two ps1 files in a nuget causes nuget packaging to hang.

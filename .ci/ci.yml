@@ -35,22 +35,27 @@ stages:
       timeoutInMinutes: 10
 
     - pwsh: |
+        Install-Module PowerShellGet -MinimumVersion 3.0.0-beta10 -Repository PSGallery -AllowPrerelease -Force
+      displayName: Install PowerShellGet V3
+      timeoutInMinutes: 10
+
+    - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
       displayName: Install PSPackageProject module
       timeoutInMinutes: 10
 
     - pwsh: |
         Get-Module -ListAvailable Pester, platyPS, PowerShellGet, PackageManagement
-      displayName: List installed Moduless
+      displayName: List installed Modules
       timeoutInMinutes: 10
 
-    - pwsh: |
-        Install-Module -Name PSPackageProject -Force
-        $config = Get-PSPackageProjectConfiguration
-        $psd1Path = Join-Path -path $config.SourcePath -ChildPath "$($config.ModuleName).psd1"
-        Update-ModuleManifest -path $psd1Path -ModuleVersion $config.Version
-      displayName: Update Version
-      timeoutInMinutes: 10
+#    - pwsh: |
+#        Install-Module -Name PSPackageProject -Force
+#        $config = Get-PSPackageProjectConfiguration
+#        $psd1Path = Join-Path -path $config.SourcePath -ChildPath "$($config.ModuleName).psd1"
+#        Update-ModuleManifest -path $psd1Path -ModuleVersion $config.Version
+#      displayName: Update Version
+#      timeoutInMinutes: 10
 
     - pwsh: |
         Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1 -Force
@@ -66,22 +71,19 @@ stages:
       timeoutInMinutes: 10
 
     - pwsh: |
-        Install-Module -Name PSPackageProject -Force
-        $config = Get-PSPackageProjectConfiguration
-        $(Build.SourcesDirectory)/package.ps1 -Version $config.Version -OutputDirectory '$(System.ArtifactsDirectory)'
-        # $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
+        $(Build.SourcesDirectory)/build.ps1 -Publish -Signed
       displayName: Publish
       timeoutInMinutes: 10
 
-    - pwsh: |
-        dir '$(System.ArtifactsDirectory)' -Recurse
-      displayName: capture ArtifactsDirectory
-      timeoutInMinutes: 10
+#    - pwsh: |
+#        dir '$(System.ArtifactsDirectory)' -Recurse
+#      displayName: capture ArtifactsDirectory
+#      timeoutInMinutes: 10
 
-    - task: PublishBuildArtifacts@1
-      inputs:
-        pathToPublish: '$(System.ArtifactsDirectory)'
-        artifactName: 'nupkg'
+#    - task: PublishBuildArtifacts@1
+#      inputs:
+#        pathToPublish: '$(System.ArtifactsDirectory)'
+#        artifactName: 'nupkg'
 
 - stage: Test
   displayName: Test Package

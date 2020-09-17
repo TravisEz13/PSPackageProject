@@ -61,14 +61,14 @@ jobs:
     errorActionPreference: continue
     timeoutInMinutes: 10
 
-  - ${{ parameters.powershellExecutable }}: |
-      Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1
-      Invoke-PSPackageProjectTest -Type StaticAnalysis
-    displayName: Execute static analysis tests
-    errorActionPreference: continue
-    continueOnError: true
-    condition: succeededOrFailed()
-    timeoutInMinutes: 10
+  #- ${{ parameters.powershellExecutable }}: |
+  #    Import-Module $env:BUILD_SOURCESDIRECTORY/src/PSPackageProject.psd1
+  #    Invoke-PSPackageProjectTest -Type StaticAnalysis
+  #  displayName: Execute static analysis tests
+  #  errorActionPreference: continue
+  #  continueOnError: true
+  #  condition: succeededOrFailed()
+  #  timeoutInMinutes: 10
 
   - ${{ parameters.powershellExecutable }}: |
       Unregister-PSRepository -Name 'pspackageproject-local-repo' -ErrorAction Ignore
