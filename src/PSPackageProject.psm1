@@ -198,7 +198,12 @@ function Invoke-FunctionalValidation {
         $testResultFile = "result.pester.xml"
         $testPath = $config.TestPath
         $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
-        $command = "import-module ${modStage} -Force -Verbose; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
+        $command = @'
+            Import-Module {0} -Force -Verbose
+            Set-Location {1}
+            Import-Module -Name Pester -MaximumVersion 4.99 -Verbose
+            Invoke-Pester -Path . -OutputFile {2} -tags "$tags"
+'@ -f $modStage, $testPath, $testResultFile
         $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose -Message $_ }
         return (Join-Path ${testPath} "$testResultFile")
     }
