@@ -198,7 +198,12 @@ function Invoke-FunctionalValidation {
         $testResultFile = "result.pester.xml"
         $testPath = $config.TestPath
         $modStage = "{0}/{1}" -f $config.BuildOutputPath,$config.ModuleName
-        $command = "import-module ${modStage} -Force -Verbose; Set-Location $testPath; Invoke-Pester -Path . -OutputFile ${testResultFile} -tags '$tags'"
+        $command = @'
+            Import-Module {0} -Force -Verbose
+            Set-Location {1}
+            Import-Module -Name Pester -MaximumVersion 4.99 -Verbose
+            Invoke-Pester -Path . -OutputFile {2} -tags "$tags"
+'@ -f $modStage, $testPath, $testResultFile
         $output = RunPwshCommandInSubprocess -command $command | Foreach-Object { Write-Verbose -Verbose -Message $_ }
         return (Join-Path ${testPath} "$testResultFile")
     }
@@ -453,9 +458,9 @@ Describe "BinSkim" {
         & $toolLocation analyze $toAnalyze --output $outputPath --pretty-print --recurse  > binskim.log 2>&1
         Write-Verbose -Message "binskim exitcode: $LASTEXITCODE" -Verbose
 
-        $null = Publish-Artifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
+        $null = UploadArtifact -Path ./binskim.log -Name "binskim-log-${env:AGENT_OS}-${PowerShellName}"
 
-        $null = Publish-Artifact -Path $outputPath -Name "binskim-result-${env:AGENT_OS}-${PowerShellName}"
+        $null = UploadArtifact -Path $outputPath -Name "binskim-result-${env:AGENT_OS}-${PowerShellName}"
 
         $testsPath = Join-Path2 -Path ([System.io.path]::GetTempPath()) -ChildPath 'pspackageproject' -AdditionalChildPath 'BinSkim', 'binskim.tests.ps1'
 
@@ -642,22 +647,43 @@ function Invoke-PSPackageProjectPublish {
     [CmdletBinding()]
     param(
         [Switch]
-        $Signed
+        $Signed,
+        [Switch]
+        $AllowPreReleaseDependencies
     )
 
     Write-Verbose -Verbose -Message "Publishing package ..."
 
-    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -ErrorAction Stop
+    New-PSPackageProjectPackage -Signed:$Signed.IsPresent -AllowPreReleaseDependencies:$AllowPreReleaseDependencies.IsPresent -ErrorAction Stop
 
     Write-Verbose -Verbose -Message "Finished publishing package"
 }
+
+function Convert-ToUri ( [string]$location ) {
+    $locationAsUri = $location -as [System.Uri]
+    if ( $locationAsUri.Scheme ) {
+        return $locationAsUri
+    }
+    # now determine if the path exists and is a directory
+    # if it exists, return it as a file uri
+    if ( Test-Path -PathType Container -LiteralPath $location ) {
+        $locationAsUri = "file://${location}" -as [System.Uri]
+        if( $locationAsUri.Scheme ) {
+            return $locationAsUri
+        }
+    }
+    throw "Cannot convert '$location' to System.Uri"
+}
+
 function New-PSPackageProjectPackage
 {
     [CmdletBinding()]
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSUseShouldProcessForStateChangingFunctions","")]
     param (
         [Switch]
-        $Signed
+        $Signed,
+        [Switch]
+        $AllowPreReleaseDependencies
     )
 
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
@@ -678,30 +704,58 @@ function New-PSPackageProjectPackage
     if (Test-Path $modulesLocation) {
         Remove-Item $modulesLocation -Recurse -Force -ErrorAction Ignore
     }
-
     $null = New-Item -Path $modulesLocation -Force -ItemType Directory
+    Write-Verbose -Verbose -Message "pspackageproject-local-repo local repository location: $packageLocation"
+
+    # Use PowerShellGet V3 to publish locally
+    try {
+        $repositoryExists = $null -ne (Get-PSResourceRepository -Name $sourceName -ErrorAction Ignore)
+    }
+    catch {
+        $repositoryExists = $false
+    }
+    if ( !$repositoryExists) {
+        Register-PSResourceRepository -Name $sourceName -URL (Convert-ToUri $modulesLocation)
+    }
 
     Write-Verbose -Message "Starting dependency download" -Verbose
     $module = Get-Module -Name $modulePath -ListAvailable -ErrorAction Stop
 
-    foreach($requiredModule in $module.RequiredModules)
+    foreach ($requiredModule in $module.RequiredModules)
     {
-        $saveParams = @{Name = $requiredModule.Name}
-        if($requiredModule.Version)
-        {
-            $saveParams.Add('RequiredVersion',$requiredModule.Version)
+        $pubParams = @{ Name = $requiredModule.Name }
+        $pubParams += @{ 'Repository' = $sourceName }
+        if ($requiredModule.Version) {
+            $pubParams += @{ 'Version' = $requiredModule.Version.ToString() }
         }
+        else {
+            $pubParams += @{ 'Version' = '*' }
+        }
+        $pubParams += @{ 'AllowPreReleaseVersions' = $AllowPreReleaseDependencies.IsPresent }
 
-        Save-Package2 @saveParams -Location $modulesLocation
+        # Download and publish dependency as nuget package
+        Write-Verbose -Verbose -Message "Publishing required module locally: $($requiredModule.Name)"
+        Publish-PackageLocally @pubParams
+
+        # Upload required module nuget package to DevOps artifacts
+        Write-Verbose -Verbose -Message "Uploading required module as artifact: $($requiredModule.Name)"
+        $filterName = "$($requiredModule.Name)*.nupkg"
+        $nupkgPath = (Get-ChildItem -Path $modulesLocation -Filter $filterName).FullName
+        if (!$nupkgPath)
+        {
+            Write-Verbose -Verbose -Message "Dependent package name not found: $filterName"
+        }
+        else
+        {
+            UploadArtifact -Path $nupkgPath -Name nupkg
+        }
     }
 
     Write-Verbose -Message "Dependency download complete" -Verbose
-    if (!(Get-PSRepository -Name $sourceName -ErrorAction Ignore)) {
-        Register-PSRepository -Name $sourceName -SourceLocation $modulesLocation -PublishLocation $modulesLocation
-    }
-
+ 
     Write-Verbose -Verbose -Message "Starting to publish module: $modulePath"
-    Publish-Module -Path $modulePath -Repository $sourceName -NuGetApiKey 'fake' -Force
+
+    Publish-PSResource -Path $modulePath -Repository $sourceName -SkipDependenciesCheck
 
     Write-Verbose -Message "Local package published" -Verbose
 
@@ -711,13 +765,13 @@ function New-PSPackageProjectPackage
         throw "$($config.ModuleName)*.nupkg not found in $modulesLocation"
     }
     
-    Publish-Artifact -Path $nupkgPath -Name nupkg
+    UploadArtifact -Path $nupkgPath -Name nupkg
 
     Write-Verbose -Message "Starting New-PSPackageProjectPackage" -Verbose
 }
 
-# Wrapper to push artifact
-function Publish-Artifact
+# Wrapper to upload artifact to AzDevOps
+function UploadArtifact
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     param(
@@ -734,39 +788,55 @@ function Publish-Artifact
 
     $resolvedPath = (Resolve-Path -Path $Path).ProviderPath
 
-    if(!$Name)
-    {
+    if (!$Name) {
         $artifactName = [system.io.path]::GetFileName($Path)
     }
-    else
-    {
+    else {
         $artifactName = $Name
     }
 
     if ($env:TF_BUILD) {
         # In Azure DevOps
+        Write-Verbose -Verbose -Message "Uploading artifact $artifactName to: $resolvedPath"
         Write-Host "##vso[artifact.upload containerfolder=$artifactName;artifactname=$artifactName;]$resolvedPath"
+    }
+    else {
+        Write-Verbose -Verbose -Message "Cannot upload artifact $artifactName, because build is local."
     }
 }
 
-function Save-Package2
+function Publish-PackageLocally
 {
     param(
-        [string[]]
-        $Name,
-        [String]
-        $Location,
-        [string]
-        $RequiredVersion
+        [string[]] $Name,
+        [String] $Repository,
+        [string] $Version,
+        [Switch] $AllowPreReleaseVersions
     )
 
-    $spkg = "Save-Package"
-    if($RequiredVersion) {
-        & $spkg -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet -RequiredVersion $RequiredVersion
-    } else {
-        & $spkg -Name $Name -Source 'https://www.powershellgallery.com/api/v2' -Path $Location -ProviderName NuGet
+    $tempSaveDir = Join-Path ([System.io.path]::GetTempPath()) "PSPTempSave"
+    if (Test-Path -Path $tempSaveDir) {
+        Remove-Item -Path $tempSaveDir -Recurse -Force -ErrorAction Ignore
     }
+    $null = New-Item -Path $tempSaveDir -Force -ItemType Directory
 
+    try {
+        # Save package from PSGallery to temporary path
+        Save-PSResource -Name $Name -Path $tempSaveDir -Version $Version -Repository PSGallery -Prerelease:$AllowPreReleaseVersions -TrustRepository -Verbose
+
+        # Publish package to repository
+        # /path/PSPTempSave/<moduleName>/
+        $moduleName = $Name[0]
+        $modulePath = Join-Path -Path $tempSaveDir -ChildPath $moduleName
+        Write-Verbose -Verbose -Message "Publishing module from path: $modulePath"
+        Publish-PSResource -Path $modulePath -Repository $Repository -SkipDependenciesCheck
+    }
+    finally {
+        if (Test-Path -Path $tempSaveDir) {
+            Write-Verbose -Verbose -Message "Removing temporary dir: $tempSaveDir"
+            Remove-Item -Path $tempSaveDir -Recurse -Force -ErrorAction Ignore
+        }
+    }
 }
 
 function Initialize-PSPackageProject {
@@ -897,7 +967,7 @@ Describe "Test ${moduleName}" -tags CI {
     Initialize-CIYml -Path ${moduleRoot}
 
     # make build.ps1
-    $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'build_for_init.ps1'
+    $boilerplateBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'dobuild_for_init.ps1'
     Copy-Item $boilerplateBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'build.ps1') -Force
     $boilerplateDoBuildScript = Join-Path -Path $PSScriptRoot -ChildPath 'dobuild.psm1'
     Copy-Item $boilerplateDoBuildScript -Destination (Join-Path $ModuleRoot -ChildPath 'dobuild.ps1') -Force

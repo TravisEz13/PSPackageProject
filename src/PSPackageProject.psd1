@@ -12,7 +12,7 @@
 RootModule = 'PSPackageProject.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.13'
+ModuleVersion = '0.1.19'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
